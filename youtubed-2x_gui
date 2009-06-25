@@ -13,7 +13,9 @@ import signal
 import re
 import time
 from threading import Thread, Lock, Semaphore
-from youtubed2x_lib.videoitem import validateURL, VideoItem
+#from youtubed2x_lib.videoitem import validateURL, VideoItem
+from youtubed2x_lib.videoitem import VideoItem
+from youtubed2x_lib.parsermanager import parser_manager
 from youtubed2x_lib.other import VERSION, APP_NAME, PageNotFound, WINDOWS, set_proxy, remove_proxy
 import youtubed2x_lib.settings as settings
 import youtubed2x_lib.download as downloader
@@ -375,15 +377,15 @@ class VideoDownloadThread (Thread):
         self.video.setFileFormat (app_settings.format)
 
         if app_settings.sitedirs:
-            if not os.path.isdir (os.path.join (app_settings.output_dir, self.video.parser.type)):
+            if not os.path.isdir (os.path.join (app_settings.output_dir, self.video.parser.getType ())):
                 try:
-                    os.mkdir (os.path.join (app_settings.output_dir, self.video.parser.type))
+                    os.mkdir (os.path.join (app_settings.output_dir, self.video.parser.getType ()))
                 except OSError:
                     self.status = self.CANCELLED
                     self._finish_thread ("Dir Write Failed", False)
                     return
 
-            self.video.setFilePaths (os.path.join (app_settings.output_dir, self.video.parser.type))
+            self.video.setFilePaths (os.path.join (app_settings.output_dir, self.video.parser.getType ()))
         else:
             self.video.setFilePaths (app_settings.output_dir)
 
@@ -731,7 +733,8 @@ class YouTubeDownloader (object):
         newtext = self.entry1.get_text ()
         if not newtext:
             return
-        youtube_video = validateURL (newtext)
+#        youtube_video = validateURL (newtext)
+        youtube_video = parser_manager.validateURL (newtext)
         if not youtube_video:
             self.update_statusbar ("An invalid url was passed. Try again.", 2500)
             self.entry1.set_text ('')

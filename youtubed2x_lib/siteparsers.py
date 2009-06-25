@@ -5,30 +5,33 @@ class Parser_Helper (object):
     """Abstract parser class. Updated 05/28/2009"""
     is_portal = False
     embed_file_extensions = {"video/flv": "flv"} # Most supported sites only distribute flv files
+    parser_type = "Generic"
 
     def __init__ (self, video_id):
         self.video_id = video_id
         self.page_url = self.video_url_str % video_id
-        self.type = "Generic"
         self.embed_file_type = "video/flv" # Normally assumed to be flv if parser does not raise an exception
 
+
     def __str__ (self):
-        return "<%s: %s>" % (self.type, self.page_url)
+        return "<%s: %s>" % (self.__class__.parser_type, self.page_url)
 
     def __repr__ (self):
-        return "<%s: %s>" % (self.type, self.page_url)
+        return "<%s: %s>" % (self.__class__.parser_type, self.page_url)
 
+
+    @classmethod
+    def getType (cls):
+        return cls.parser_type
 
     def getEmbedType (self):
         return self.embed_file_type
 
-
     def getEmbedExtension (self):
         return self.__class__.embed_file_extensions.get (self.embed_file_type, "flv")
 
-
     def getImageString (self):
-        return "%s.png" % self.type
+        return "%s.png" % self.__class__.parser_type
 
 
     class LoginRequired (Exception):
@@ -109,11 +112,12 @@ class YouTube_Parser (Parser_Helper):
     login_required_re = re.compile (r"^http://www.youtube.com/verify_age\?next_url=/watch")
     login_page = "http://www.youtube.com/signup"
     embed_file_extensions = {"video/flv": "flv", "video/mp4": "mp4"}
+    parser_type = "YouTube"
 
     def __init__ (self, video_id):
         super (YouTube_Parser, self).__init__ (video_id)
         self.has_high_version = False
-        self.type = "YouTube"
+
 
     def getVideoPage (self, account="", password=""):
         if not isinstance (account, str) or not isinstance (password, str):
@@ -184,15 +188,17 @@ class PornoTube_Parser (Parser_Helper):
     video_url_mid_re = re.compile (r'&mediaId=(\d+)&')
     video_url_uid_re = re.compile (r'&userId=(\d+)&')
     video_url_mdomain_re = re.compile (r'&mediaDomain=([^&]+)&')
+    parser_type = "PornoTube"
 
     def __init__ (self, video_id):
         Parser_Helper.__init__ (self, video_id)
-        self.type = "PornoTube"
+
 
     def getVideoPage (self):
         page, newurl = getPage (self.page_url, self.video_url_age_post)
         page, newurl = getPage (self.page_url)
         return page, newurl
+
 
     def _parsePlayerCommands (self, page_dump):
         """Get the commands needed to get the video player"""
@@ -202,6 +208,7 @@ class PornoTube_Parser (Parser_Helper):
         else:
             commands = match.groups ()
         return commands
+
 
     def _parseRealURL (self, commands):
         """Get the real url for the video"""
@@ -235,10 +242,10 @@ class RedTube_Parser (Parser_Helper):
     video_title_re = re.compile (r'<h1 class=\'videoTitle\'>([^<]*)</')
     # Mapped translation characters
     video_map_table = ['R', '1', '5', '3', '4', '2', 'O', '7', 'K', '9', 'H', 'B', 'C', 'D', 'X', 'F', 'G', 'A', 'I', 'J', '8', 'L', 'M', 'Z', '6', 'P', 'Q', '0', 'S', 'T', 'U', 'V', 'W', 'E', 'Y', 'N']
+    parser_type = "RedTube"
 
     def __init__ (self, video_id):
         super (RedTube_Parser, self).__init__ (video_id)
-        self.type = "RedTube"
 
 
     # TODO: Fix to use dynamic expires date
@@ -302,11 +309,12 @@ class Veoh_Parser (Parser_Helper):
     extern_content_re = re.compile (r'<contentSource id=')
     forward_link_re = re.compile (r'aowPermalink="(\S+)"')
     is_portal = True
+    parser_type = "Veoh"
 
     def __init__ (self, video_id):
         Parser_Helper.__init__ (self, video_id)
         self.details_url = self.video_detail_url % video_id
-        self.type = "Veoh"
+
 
     def getVideoPage (self, account="", password=""):
         page, newurl = getPage (self.details_url)
@@ -332,15 +340,17 @@ class YouPorn_Parser (Parser_Helper):
     video_url_real_str = 'http://download.youporn.com/download/%s/?%s'
     video_title_re = re.compile (r'<title>([^<]+) - Free Porn Videos - YouPorn.com Lite \(BETA\)</title>')
     video_url_params_re = re.compile (r'<a href="http://download.youporn.com/download/(\d+)/\?(\S+)">FLV - Flash Video format</a>')
+    parser_type = "YouPorn"
 
     def __init__ (self, video_id):
         super (YouPorn_Parser, self).__init__ (video_id)
         self.video_enter_url = self.page_url + '?user_choice=Enter'
-        self.type = "YouPorn"
+
 
     def getVideoPage (self, account="", password=""):
         page, newurl = getPage (self.video_enter_url)
         return page, newurl
+
 
     def _parseRealURL (self, commands):
         """Get the real url for the video"""
@@ -357,10 +367,10 @@ class GoogleVideo_Parser (Parser_Helper):
     video_url_params_re = re.compile (r"<a href=(?:\")?(http://v(\d+)\.(\S+)\.googlevideo.com/videoplayback\?(\S+))(?:\")?>")
     forward_link_re = re.compile (r"document.getElementById\('external_page'\)\.src = \"(\S+)\";")
     embed_file_extensions = {"video/mp4": "mp4"}
+    parser_type = "GoogleVideo"
 
     def __init__ (self, video_id):
         super (GoogleVideo_Parser, self).__init__ (video_id)
-        self.type = "GoogleVideo"
         self.embed_file_type = "video/mp4"
 
 
@@ -388,10 +398,11 @@ class Metacafe_Parser (Parser_Helper):
     video_url_str = 'http://www.metacafe.com/watch/%s/'
     video_title_re = re.compile (r'<title>([^<]*) - Video</title>')
     video_url_params_re = re.compile (r"mediaURL=(\S+)&gdaKey=(\w+)&postRollContentURL=")
+    parser_type = "Metacafe"
 
     def __init__ (self, video_id):
         super (Metacafe_Parser, self).__init__ (video_id)
-        self.type = "Metacafe"
+
 
     def _parseRealURL (self, commands):
         """Get the real url for the video"""
@@ -407,10 +418,11 @@ class Dailymotion_Parser (Parser_Helper):
     video_title_re = re.compile (r'vs_videotitle:"([\S ]+)",vs_user:')
     video_url_params_re = re.compile (r"addVariable\(\"video\", \"([\w\-%\.]+)%40%40spark%7C")
     video_url_real_str = "http://www.dailymotion.com%s"
+    parser_type = "Dailymotion"
 
     def __init__ (self, video_id):
         super (Dailymotion_Parser, self).__init__ (video_id)
-        self.type = "Dailymotion"
+
 
     def _parseRealURL (self, commands):
         """Get the real url for the video"""
@@ -427,10 +439,11 @@ class Pornhub_Parser (Parser_Helper):
     video_title_re = re.compile (r'<title>([^<]*) - Pornhub.com</title>')
     video_url_params_re = re.compile (r'to\.addVariable\("options", "(\S+)"\);')
     video_key_re = re.compile (r"<flv_url>(\S+)</flv_url>")
+    parser_type = "Pornhub"
 
     def __init__ (self, video_id):
         super (Pornhub_Parser, self).__init__ (video_id)
-        self.type = "Pornhub"
+
 
     def _parseRealURL (self, commands):
         """Get the real url for the video"""
@@ -454,10 +467,11 @@ class Tube8_Parser (Parser_Helper):
     video_url_str = 'http://www.tube8.com/%s/'
     video_title_re = re.compile (r'">([\S ]+)</h1>')
     video_url_params_re = re.compile (r'param name="FlashVars" value="videoUrl=(\S+)&imageUrl=')
+    parser_type = "Tube8"
 
     def __init__ (self, video_id):
         super (Tube8_Parser, self).__init__ (video_id)
-        self.type = "Tube8"
+
 
     def _parseRealURL (self, commands):
         """Get the real url for the video"""
@@ -471,10 +485,11 @@ class MyVideo_Parser (Parser_Helper):
     video_url_str = 'http://www.myvideo.de/watch/%s/'
     video_title_re = re.compile (r"<td class='globalHd'>([^<]*)</td>")
     video_url_params_re = re.compile (r"<link rel='image_src' href='(\S+)' />")
+    parser_type = "MyVideo"
 
     def __init__ (self, video_id):
         super (MyVideo_Parser, self).__init__ (video_id)
-        self.type = "MyVideo"
+
 
     def _parseRealURL (self, commands):
         """Get the real url for the video"""
@@ -490,14 +505,16 @@ class MySpaceTV_Parser (Parser_Helper):
     video_details_str = "http://mediaservices.myspace.com/services/rss.ashx?videoID=%s&type=video"
     video_title_re = re.compile (r"<item>\r\n      <title>([^<]*)</title>")
     video_url_params_re = re.compile (r'<media:content url="(\S+)" type="video/x-flv"')
+    parser_type = "MySpaceTV"
 
     def __init__ (self, video_id):
         super (MySpaceTV_Parser, self).__init__ (video_id)
-        self.type = "MySpaceTV"
+
 
     def getVideoPage (self, account="", password=""):
         page, newurl = getPage (self.video_details_str % self.video_id)
         return page, newurl
+
 
     def _parseRealURL (self, commands):
         """Get the real url for the video"""
@@ -511,10 +528,11 @@ class Guba_Parser (Parser_Helper):
     video_url_str = 'http://www.guba.com/watch/%s'
     video_title_re = re.compile (r'var theName="([\S ]+)";')
     video_url_params_re = re.compile (r'"(\S+)" \);\r\n(?:[ ]{32})bfp.writeBlogFlashPlayer\(\);')
+    parser_type = "Guba"
 
     def __init__ (self, video_id):
         super (Guba_Parser, self).__init__ (video_id)
-        self.type = "Guba"
+
 
     def _parseRealURL (self, commands):
         """Get the real url for the video"""
@@ -530,10 +548,10 @@ class GiantBomb_Parser (Parser_Helper):
     video_title_re = re.compile (r'<title><!\[CDATA\[([^\[]*)]]></title>')
     video_embed_code_re = re.compile (r'flashvars="paramsURI=http%3A//www.giantbomb.com/video/params/(\d+)/(?:\?w=1)?"')
     video_url_params_re = re.compile (r'<URI bitRate="700">(\S+)</URI>')
+    parser_type = "GiantBomb"
 
     def __init__ (self, video_id):
         super (GiantBomb_Parser, self).__init__ (video_id)
-        self.type = "GiantBomb"
 
 
     def getVideoPage (self, account="", password=""):
@@ -558,10 +576,10 @@ class GirlsInTube_Parser (Parser_Helper):
     video_url_age_post = {'year': '1929', 'month': '1', 'day': '1', 'prescreen_submit': 'Continue'}
     video_title_re = re.compile (r'<div class="player-comments"> <h1>([\S ]+)</h1> ')
     video_url_params_re = re.compile (r"{ 'clip': {'url': '(\S+)', ")
+    parser_type = "GirlsInTube"
 
     def __init__ (self, video_id):
         super (GirlsInTube_Parser, self).__init__ (video_id)
-        self.type = "GirlsInTube"
 
 
     def getVideoPage (self, account="", password=""):
@@ -584,11 +602,11 @@ class PacoPorn_Parser (Parser_Helper):
     video_details_url_str = "http://www.pacoporn.com/videoConfigXmlCode.php?pg=video_%s_no_0"
     video_title_re = re.compile (r'TEXT Name=\"Header\" Value=\"([\S ]+)\" Enable=')
     video_url_params_re = re.compile (r'PLAYER_SETTINGS Name=\"FLVPath\" Value=\"(\S+)\"')
+    parser_type = "PacoPorn"
 
 
     def __init__ (self, video_id):
         super (PacoPorn_Parser, self).__init__ (video_id)
-        self.type = "PacoPorn"
 
 
     def getVideoPage (self, account="", password=""):
@@ -606,11 +624,11 @@ class Porn2Pc_Parser (Parser_Helper):
     """Non-Parser for Porn2PC pages. Updated 06/03/2009"""
     const_video_url_re = re.compile (r'^((?:http://)?(?:www\.)?porn2pc\.com/)(\S+)')
     video_url_str = 'http://www.porn2pc.com/%s'
+    parser_type = "Porn2Pc"
 
 
     def __init__ (self, video_id):
         super (Porn2pc_Parser, self).__init__ (video_id)
-        self.type = "Porn2Pc"
 
 
     @classmethod

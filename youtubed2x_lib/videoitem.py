@@ -342,10 +342,14 @@ def validateURL (full_url, video_item=True):
 
     youtube_video = None
 
+    import time
+    start_time = time.time ()
     # Use each parser regular expression to determine what type of URL was given
     for parser in video_parser_list:
         page_parser = parser.checkURL (full_url)
         if page_parser:
+            end_time = time.time ()
+            print "Time elapsed: %s" % (end_time - start_time)
             if video_item:
                 youtube_video = VideoItem (page_parser)
             elif page_parser:
