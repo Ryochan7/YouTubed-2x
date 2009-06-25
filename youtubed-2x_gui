@@ -1,0 +1,1223 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import pygtk
+if not sys.platform == "win32":
+    pygtk.require ("2.0")
+import gtk
+import gtk.glade
+import gobject
+import subprocess
+import signal
+import re
+import time
+from threading import Thread, Lock, Semaphore
+from youtubed2x_lib.videoitem import validateURL, VideoItem
+from youtubed2x_lib.other import VERSION, APP_NAME, PageNotFound, WINDOWS, set_proxy, remove_proxy
+import youtubed2x_lib.settings as settings
+import youtubed2x_lib.download as downloader
+
+if WINDOWS:
+    import win32process
+
+class PropertiesWindow (object):
+    def __init__ (self, glade_file):
+        self.gladefile = glade_file
+        self.window = gtk.glade.XML (self.gladefile, "properties_win")
+        self.main_window = self.window.get_widget ("properties_win")
+        self.ffmpeg_chooser = self.window.get_widget ("ffmpeg_chooser")
+        self.sitedirs_check = self.window.get_widget ("sitedirs")
+        self.process_limit_spin = self.window.get_widget ("process_limit_spinbutton")
+
+        self.proxy_server_text = self.window.get_widget ("proxy_server_text")
+        self.proxy_port_spin = self.window.get_widget ("proxy_port_spin")
+
+        self.proxy_server_label = self.window.get_widget ("proxy_server_label")
+        self.proxy_port_label = self.window.get_widget ("proxy_port_label")
+        self.use_proxy_checkbutton = self.window.get_widget ("use_proxy_checkbutton")
+
+        self._setWidgetAttrib ()
+        dic = {"on_ok_button_clicked": self.apply_changes, "on_properties_win_delete_event": self.cancel, "on_close_button_clicked": self.cancel, "on_use_proxy_checkbutton_toggled": self.toggle_proxy}
+        self.window.signal_autoconnect (dic)
+
+
+    def _setWidgetAttrib (self):
+        if app_settings.ffmpeg_location != self.ffmpeg_chooser.get_filename ():
+            self.ffmpeg_chooser.set_filename (app_settings.ffmpeg_location)
+        self.sitedirs_check.set_active (app_settings.sitedirs)
+
+        self.use_proxy_checkbutton.set_active (app_settings.use_proxy)
+        if app_settings.use_proxy:
+            self.proxy_server_text.set_sensitive (True)
+            self.proxy_port_spin.set_sensitive (True)
+            self.proxy_server_label.set_sensitive (True)
+            self.proxy_port_label.set_sensitive (True)
+
+        self.proxy_server_text.set_text (app_settings.proxy_server)
+        self.proxy_port_spin.set_value (app_settings.proxy_port)
+        self.process_limit_spin.set_value (app_settings.process_limit)
+
+
+    def toggle_proxy (self, widget):
+        if widget.get_active ():
+            self.proxy_server_text.set_sensitive (True)
+            self.proxy_port_spin.set_sensitive (True)
+            self.proxy_server_label.set_sensitive (True)
+            self.proxy_port_label.set_sensitive (True)
+
+        else:
+            self.proxy_server_text.set_sensitive (False)
+            self.proxy_port_spin.set_sensitive (False)
+            self.proxy_server_label.set_sensitive (False)
+            self.proxy_port_label.set_sensitive (False)
+
+
+    def apply_changes (self, widget):
+        temp = self.ffmpeg_chooser.get_filename ()
+        if temp:
+            app_settings.ffmpeg_location = temp
+            VideoItem.setFFmpegLocation (app_settings.ffmpeg_location)
+        app_settings.sitedirs = self.sitedirs_check.get_active ()
+
+        temp_server = self.proxy_server_text.get_text ()
+        temp_port = self.proxy_port_spin.get_value_as_int ()
+        old_server = app_settings.proxy_server
+        old_port = app_settings.proxy_port
+
+        if temp_server != app_settings.proxy_server or temp_port != app_settings.proxy_port:
+            app_settings.proxy_server = temp_server
+            app_settings.proxy_port = temp_port
+
+
+        if self.use_proxy_checkbutton.get_active ():
+            app_settings.use_proxy = True
+            if temp_server and temp_port:
+                try:
+                    set_proxy (temp_server, temp_port)
+                except Exception as exception:
+                    print >> sys.stderr, "%s. Disabling proxy." % exception
+                    app_settings.use_proxy = False
+                    self.use_proxy_checkbutton.set_active (app_settings.use_proxy)
+
+        elif app_settings.use_proxy:
+            app_settings.use_proxy = False
+            remove_proxy ()
+
+        temp = self.process_limit_spin.get_value_as_int ()
+        if temp != app_settings.process_limit:
+            app_settings.process_limit = temp
+            video_queue.alter_sem (app_settings.process_limit)
+
+        self.main_window.hide ()
+
+
+    def show (self):
+        self.main_window.show ()
+
+
+    def cancel (self, widget, data=None):
+        self._setWidgetAttrib ()
+        self.main_window.hide ()
+        return True
+
+
+    def hide (self, widget, data=None):
+        self.main_window.hide ()
+        return True
+
+
+
+# TODO: NEED TO RENAME CLASS AND INSTANCE. NOT A QUEUE ANYMORE. W00T!
+class QueueManager (object):
+    COLUMN_NAMES = {0: "url", 1: "title", 2: "progress", 3: "status", 4: "speed", 5: "size"}
+    COLUMN_TYPES = (gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_INT, gobject.TYPE_STRING, gobject.TYPE_STRING)
+    signals = ["progress-update", "info-changed", "block-ui", "unblock-ui"]
+    UPDATE_INTERVAL = .5 # In seconds
+
+    def __init__ (self, sem_limit=4):
+        self.observers = {}
+        for signal in self.__class__.signals:
+            self.observers[signal] = []
+        self.dude = {}
+        self.next_status_id = 0
+        self._num_objects = 0
+        self._running_items = 0
+        if sem_limit < 0:
+            raise Exception ("Process limit is less than zero. Passed: %s" % sem_limit)
+
+        self._sem_limit = sem_limit
+        self.lock = Lock ()
+        self.tree_model = gtk.ListStore (gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_INT, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
+        self.semaphore = Semaphore (self._sem_limit)
+
+
+    def register (self, signal, observer):
+        if signal in self.observers:
+            if observer not in self.observers[signal]:
+                self.observers[signal].append (observer)
+        else:
+            raise Exception ("WTF")
+
+
+    def unregister (self, signal, observer):
+        if signal in self.observers:
+            if observer in self.observers[signal]:
+                self.observers[signal].remove (observer)
+        else:
+            raise Exception ("WTFA")
+
+
+    def send (self, signal, *args):
+        if signal in self.observers:
+            for observer in self.observers[signal]:
+                observer (*args)
+        else:
+            raise Exception ("WHO IS YOUR DADDY AND WHAT DOES HE DO?")
+
+
+    def add_try (self, thread):
+        self.lock.acquire ()
+        id = self.next_status_id
+        self.next_status_id += 1
+        gtk.gdk.threads_enter ()
+        self.dude[id] = {"iter": self.tree_model.append ([thread.video.parser.page_url, thread.video.parser.page_url, 0, "Getting Info", "", "", thread.video.parser.getImageString ()]), "thread": thread, "last_update": time.time ()}
+#       self.tree_model.append (['http://www.youtube.com/watch?v=KZ1aZjTrh3I', 'http://www.youtube.com/watch?v=KZ1aZjTrh3I', 0, 'Waiting', "100 KB", "50 MB"]) # Replace 2nd URL with parsed title once page is parsed
+        gtk.gdk.threads_leave ()
+        self._num_objects += 1
+        self.lock.release ()
+        return id
+
+
+    def acquire_sem (self):
+        if self._sem_limit == 0:
+            self._running_items += 1
+            return True
+
+        status = self.semaphore.acquire (False)
+        if status:
+            self._running_items += 1
+        return status
+
+
+    def release_sem (self):
+        if self._running_items > 0:
+            if self._running_items <= self._sem_limit and self._sem_limit != 0:
+                self.semaphore.release ()                
+            self._running_items -= 1
+
+
+    def alter_sem (self, value):
+        if isinstance (value, int) and value >= 0:
+            if value == 0:
+                self.semaphore = Semaphore (value)
+            elif value >= self._running_items:
+                self.semaphore = Semaphore (value-self._running_items)
+
+            self._sem_limit = value
+
+
+    def update_status (self, id, **kwargs):
+        if not id in self.dude:
+            return
+
+        iter = self.dude[id]["iter"]
+        if iter is None:
+            return
+
+        force_update = kwargs.get ("force_update", False)
+        update_time = (time.time () - self.dude[id]["last_update"]) > self.__class__.UPDATE_INTERVAL
+        # Return if it is not time to update
+        if not update_time and not force_update:
+            return
+
+        self.lock.acquire ()
+        gtk.gdk.threads_enter ()
+        for column, key in self.__class__.COLUMN_NAMES.items ():
+            if key in kwargs:
+                self.tree_model.set (iter, column, kwargs[key])
+        self.dude[id]["last_update"] = time.time ()
+        gtk.gdk.threads_leave ()
+        self.lock.release ()
+
+
+    def startDownload (self, id):
+        if not id in self.dude:
+            return False
+
+        thread = self.dude[id]["thread"]
+        thread.setReady (True)
+
+
+    def getVideoThread (self, id):
+        if not id in self.dude:
+            return None
+
+        thread = self.dude[id]["thread"]
+        return thread
+
+
+    def getThreadId (self, url):
+        for element in self.dude:
+            thread = self.dude[element]["thread"]
+            if thread and thread.video.parser.page_url == url:
+                return element
+        return None
+
+
+    def removeDownload (self, id):
+        if not id in self.dude:
+            return
+
+        iter = self.dude[id]["iter"]
+        self.lock.acquire ()
+        self._removeIter (iter)
+        self.lock.release ()
+        self.dude[id]["iter"] = None
+        if self.dude[id]["thread"].status != VideoDownloadThread.DONE:
+            self.dude[id]["thread"].cancel ()
+        self._num_objects -= 1
+        key_list = self.dude.keys ()
+        key_list.sort ()
+        # Removing last entry
+        if id == key_list[-1]:
+            if len (key_list) == 1:
+                self.next_status_id = 0 # Reset Status ID (Removing only entry)
+            else:
+                self.next_status_id = key_list[-2]+1
+        del self.dude[id]
+
+
+    def finishDownload (self, id):
+        if not id in self.dude:
+            return
+
+        iter = self.dude[id]["iter"]
+        if self.dude[id]["thread"].status != VideoDownloadThread.DONE:
+            self.dude[id]["thread"].cancel ()
+
+
+    def _removeIter (self, iter):
+        self.tree_model.remove (iter)
+
+
+    def is_empty (self):
+        if self._num_objects == 0:
+            return True
+
+        return False
+
+
+    def queue_length (self):
+        return self._num_objects
+
+
+    def swap_items (self, id_item1, id_item2):
+        if id_item1 in self.dude and id_item2 in self.dude:
+            self.tree_model.swap (self.dude[id_item1]["iter"], self.dude[id_item2]["iter"])
+
+
+    def is_queue_active (self):
+        for element in self.dude.keys ():
+            thread = self.dude[element]["thread"]
+            if thread and thread.isAlive ():
+                if thread.status == VideoDownloadThread.READY or thread.status == VideoDownloadThread.PARSING:
+                    return True
+
+        return False
+
+
+    def clear_complete (self):
+        for element in self.dude.keys ():
+            thread = self.dude[element]["thread"]
+            if thread and not thread.isAlive ():
+                self.removeDownload (element)
+
+
+class VideoDownloadThread (Thread):
+    WAITING, PARSING, READY, CANCELLED, DONE = range (0,5)
+    SLEEP_HOLD = 1 # In seconds
+
+    def __init__ (self, video):
+        super (VideoDownloadThread, self).__init__ ()
+        self.setDaemon (True)
+        self.video = video
+        self.process_id = None
+        self.download_id = None
+        self._downloader = None
+        self._has_sem = False
+        self.status = self.__class__.WAITING
+
+
+    def run (self):
+        self.download_id = video_queue.add_try (self)
+        self.status = self.__class__.PARSING
+        status, message = self._parsePage ()
+        if not status:
+            self.status = self.__class__.DONE # CHANGE LATER
+            self._finish_thread ("Parse Failed", False)
+
+            gtk.gdk.threads_enter ()
+            video_queue.send ("unblock-ui")
+            gtk.gdk.threads_leave ()
+            return
+
+        self.status = self.__class__.WAITING
+        video_queue.update_status (self.download_id, title=self.video.title, progress=0, status="Queued", force_update=True)
+
+        bitrate = 0
+        if app_settings.format in VideoItem.AUDIO_FORMATS:
+            bitrate = app_settings.abitrate
+        else:
+            bitrate = app_settings.vbitrate
+            self.video.setOutputRes (app_settings.output_res)
+
+        self.video.setFileFormat (app_settings.format)
+
+        if app_settings.sitedirs:
+            if not os.path.isdir (os.path.join (app_settings.output_dir, self.video.parser.type)):
+                try:
+                    os.mkdir (os.path.join (app_settings.output_dir, self.video.parser.type))
+                except OSError:
+                    self.status = self.CANCELLED
+                    self._finish_thread ("Dir Write Failed", False)
+                    return
+
+            self.video.setFilePaths (os.path.join (app_settings.output_dir, self.video.parser.type))
+        else:
+            self.video.setFilePaths (app_settings.output_dir)
+
+        auto_download = app_settings.auto_download
+        if auto_download:
+            self._has_sem = video_queue.acquire_sem ()
+            if self._has_sem:
+                self.status = self.__class__.READY
+
+        gtk.gdk.threads_enter ()
+        video_queue.send ("unblock-ui")
+        gtk.gdk.threads_leave ()
+
+        while self.status != self.__class__.READY and self.status != self.__class__.CANCELLED and not self._has_sem:
+            #print "KHAN"
+            time.sleep (self.__class__.SLEEP_HOLD)
+            if auto_download:
+                self._has_sem = video_queue.acquire_sem ()
+                if self._has_sem:
+                    self.status = self.__class__.READY
+
+        # This loop will likely be entered when a user starts
+        # a download manually. Make sure to obey process limit
+        while not self._has_sem and self.status != self.__class__.CANCELLED:
+            time.sleep (self.__class__.SLEEP_HOLD)
+            self._has_sem = video_queue.acquire_sem ()
+
+        if self.status == self.__class__.CANCELLED:
+            self._finish_thread ("Cancelled")
+            if self._has_sem:
+                video_queue.release_sem ()
+            return
+
+        # Refresh GUI for autodownloaded items
+        gtk.gdk.threads_enter ()
+        video_queue.send ("unblock-ui")
+        gtk.gdk.threads_leave ()
+
+        # At this point, self._has_sem will definitely be True
+        status = self._startWget ()
+        
+        # Did wget fail
+        if not status and self.status == self.__class__.CANCELLED:
+            self._finish_thread ("Cancelled")
+            video_queue.release_sem ()
+            return
+        elif not status:
+            self.status = self.__class__.CANCELLED
+            self._finish_thread ("Wget Failed", False)
+            video_queue.release_sem ()
+            return
+
+        if self.status == self.__class__.CANCELLED:
+            self._finish_thread ("Cancelled")
+            video_queue.release_sem ()
+            return
+
+        if not app_settings.transcode:
+            self._finish_thread ()
+            video_queue.release_sem ()
+            return
+
+        if os.path.exists (self.video.avi_file) and not app_settings.overwrite:
+            print "Output file already exists. Skipping transcode."
+            self._finish_thread ()
+            video_queue.release_sem ()
+            return
+        elif os.path.exists (self.video.avi_file):
+            print "Overwriting old avi file"
+            os.remove (self.video.avi_file)
+
+        status = self._startFFmpeg (bitrate)
+
+        # Did ffmpeg fail
+        if not status and self.status == self.__class__.CANCELLED:
+            self._finish_thread ("Cancelled")
+            video_queue.release_sem ()
+            return
+        elif not status:
+            self.staus = self.__class__.CANCELLED
+            self._finish_thread ("FFmpeg Failed", False)
+            video_queue.release_sem ()
+            return
+
+        if not app_settings.keep_flv_files:
+            print "Flv video deleted."
+            os.remove (self.video.flv_file)
+
+        if self.status == self.__class__.CANCELLED:
+            video_queue.release_sem ()
+            return
+
+        self._finish_thread ()
+        video_queue.release_sem ()
+
+
+    def _finish_thread (self, print_status="Complete", done=True):
+        if done:
+            self.status = self.__class__.DONE
+
+        video_queue.update_status (self.download_id, progress=100, status=print_status, force_update=True)
+
+        gtk.gdk.threads_enter ()
+        video_queue.send ("block-ui")
+        gtk.gdk.threads_leave ()
+
+
+    def setReady (self, ready=True):
+        if isinstance (ready, bool) and ready:
+            self.status = self.__class__.READY
+
+
+    def cancel (self):
+        if self._downloader or not self._has_sem:
+            self.status = self.__class__.CANCELLED
+
+        # Process is currently running. Kill process and cancel thread
+        elif self.process_id and self.status == self.__class__.READY:
+            if not WINDOWS:
+                os.kill (self.process_id, signal.SIGKILL)
+            else:
+                import win32api
+                handle = win32api.OpenProcess (1, 0, self.process_id)
+                win32api.TerminateProcess (handle, 0)
+
+            self.status = self.__class__.CANCELLED
+            self.process_id = None
+        # Thread is active but likely transitioning to ffmpeg.
+        # Wait and try to cancel
+        elif self.status == self.__class__.READY:
+            gobject.timeout_add (500, self.cancel)
+        # Thread should be in a save spot to just set the flag
+        else:
+            self.status = self.__class__.CANCELLED
+
+
+    def _startFFmpeg (self, bitrate):
+        testre = re.compile (r'time=(\d+).(\d+)')
+        durationre = re.compile (r'Duration: (\d{2}):(\d{2}):(\d{2}).(\d{1})')
+        command = None
+        process = None
+
+        # Get flv video file information (resolution, framerate)
+        try:
+            if not WINDOWS:
+                process = subprocess.Popen ([self.video.command_dict["application"], "-i", self.video.flv_file], stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+            else:
+                process = subprocess.Popen ([self.video.command_dict["application"], "-i", self.video.flv_file], stderr=subprocess.PIPE, stdin=subprocess.PIPE, stdout=subprocess.PIPE, creationflags=win32process.CREATE_NO_WINDOW)
+                process.stdout.close ()
+                process.stdin.close ()
+            process.wait ()
+        except OSError:
+            return False
+
+        match = VideoItem.resolution_re.search (process.stderr.read ())
+        if match:
+            (vid_length, vid_width, vid_frame) = match.groups ()
+            (vid_length, vid_width, vid_frame) = (int (vid_length), int (vid_width), float (vid_frame))
+            command = self.video.buildCommandList (bitrate, vid_length, vid_width)
+        else:
+            command = self.video.buildCommandList (bitrate)
+
+        #print command
+
+        duration = None
+        percentage = 0
+
+        video_queue.update_status (self.download_id, progress=percentage, status="Transcoding", force_update=True)
+        try:
+            if not WINDOWS:
+                process = subprocess.Popen (command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, close_fds=True)
+            else:
+                process = subprocess.Popen (command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, creationflags=win32process.CREATE_NO_WINDOW)
+                process.stdin.close ()
+        except OSError:
+            return False
+
+        (stdout, stderr) = (process.stdout, process.stderr)
+        self.process_id = process.pid
+#       print process.poll ()
+        message = "Transcoding %s" % self.video.title
+        if len (message) > 41:
+            message = "%s..." % message[0:38]
+
+        while process.poll () == None:
+            msg = stderr.readline ()
+#            print msg
+            msg = msg.strip ()
+            if msg:
+                #print msg
+                if not duration:
+                    match = durationre.match (msg)
+                    if match:
+                        duration = (int(match.group (1)) * 60 + int (match.group (2)) * 60 + int (match.group (3))) * 10 + int (match.group (4))
+                    continue
+                match = testre.search (msg)
+                if match:
+                    percentage = int((int (match.group (1)) * 10 + int (match.group (2))) * 100 / duration)
+                    if percentage > 100:
+                        percentage = 100
+                    video_queue.update_status (self.download_id, progress=percentage)
+
+#       print process.poll ()
+        self.process_id = None
+
+        if process.poll () == 0 and not WINDOWS:
+            video_queue.update_status (self.download_id, progress=100, status="Complete", force_update=True)
+        elif process.poll () == 0 and self.status != self.CANCELLED:
+            video_queue.update_status (self.download_id, progress=100, status="Complete", force_update=True)
+        else:
+            if os.path.exists (self.video.avi_file):
+                os.remove (self.video.avi_file)
+            return False
+        return True
+
+
+    def _startWget (self):
+        n00b = downloader.FileDownloader (self.video.real_url, self.video.flv_file)
+        try:
+            n00b.open ()
+        except downloader.FileExistException as exception:
+            print "File already exists. Skipping Download"
+            return True
+
+        self._downloader = n00b
+
+        file_size = n00b.getFileSize ()
+
+        if file_size > 0:
+            video_queue.update_status (self.download_id, size="%s" % n00b.humanizeSize (n00b.getFileSize ()), status="Downloading", force_update=True)
+        else:
+            # Returned file_size is -1. Unknown file size. Proceed with
+            # download but stats can't be updated
+            video_queue.update_status (self.download_id, size="Unknown", status="Downloading", force_update=True)
+
+        start_update = time.time ()
+        try:
+            data = n00b.readBlock ()
+        except Exception as exception:
+            return False
+
+        while data != "" and (self.status == self.__class__.READY):
+            speeda = n00b.getBytesDownloaded () / float ((time.time () - start_update))
+            percentage = n00b.downloadPercentage ()
+
+            if percentage >= 0:
+                video_queue.update_status (self.download_id, progress=n00b.downloadPercentage (), speed="%s/s" % n00b.humanizeSize (speeda))
+            else:
+                # File size is not known. Update speed only
+                video_queue.update_status (self.download_id, progress=0, speed="%s/s" % n00b.humanizeSize (speeda))
+
+            try:
+                data = n00b.readBlock ()
+            except Exception as exception:
+                return False
+
+        self._downloader = None
+
+        if self.status == self.__class__.READY and n00b.getBytesDownloaded () == file_size:
+            n00b.close ()
+        elif self.status == self.__class__.READY and file_size == -1:
+            n00b.close () # Can only assume file completely downloaded
+        else:
+            n00b.cancel ()
+            video_queue.update_status (self.download_id, speed="", size="", force_update=True)
+            return False
+
+        video_queue.update_status (self.download_id, progress=100, speed="", size="", force_update=True)
+        return True
+
+
+    def _parsePage (self):
+        try:
+            self.video.getVideoInformation ()
+        except self.video.parser.UnknownTitle as exception:
+            print >> sys.stderr, "%s. Stopping download." % exception
+            return False, exception.args
+        except self.video.parser.InvalidCommands as exception:
+            print >> sys.stderr, "%s. Stopping download." % exception
+            return False, exception.args
+        except PageNotFound as exception:
+            print >> sys.stderr, "%s. Stopping download." % exception
+            return False, exception.args
+        except self.video.parser.URLBuildFailed as exception:
+            print >> sys.stderr, "%s. Stopping download." % exception
+            return False, exception.args
+        except self.video.parser.InvalidPortal as exception:
+            print >> sys.stderr, "%s. Stopping download." % exception
+            return False, exception.args
+        except self.video.parser.LoginRequired as exception:
+            print >> sys.stderr, "%s. Stopping download." % exception
+            return False, exception.args
+        except Exception as exception:
+            print >> sys.stderr, "%s" % exception
+            return False, exception.args
+
+        return True, ""
+
+
+class YouTubeDownloader (object):
+    def update_statusbar (self, message=None, interval=0):
+        if message == None:
+            self.statusbar.pop (self.statusbar_context_id)
+        else:
+            self.statusbar.pop (self.statusbar_context_id)
+            self.statusbar.push (self.statusbar_context_id, message)
+        if interval:
+            gobject.timeout_add (interval, self.update_statusbar)
+
+
+    def startProcess (self, widget):
+        app_settings.output_dir = self.folder_chooser.get_filename ()
+        app_settings.output_res = self.resolution_combobox.get_active ()
+
+        tree = self.treeview1.get_selection ()
+        model, selection = tree.get_selected ()
+
+        url = model.get_value (selection, 0)
+        thread_id = video_queue.getThreadId (url)
+
+        if thread_id is not None:
+            video_queue.startDownload (thread_id)
+
+        self.select_item ()
+        return True
+
+
+    def show_about_window (self, widget):
+        """Display non-modal about window"""
+        self.about_window.show ()
+
+
+    def hide_about_window (self, widget, data=None):
+        """Hide non-modal about window"""
+        self.about_window.hide ()
+
+
+    def keep_about_window (self, widget, data=None):
+        """Keep about window from being destroyed when close button
+        is clicked. Window will be hidden later from the response handler"""
+        return True
+
+
+    def add_queue (self, widget):
+        newtext = self.entry1.get_text ()
+        if not newtext:
+            return
+        youtube_video = validateURL (newtext)
+        if not youtube_video:
+            self.update_statusbar ("An invalid url was passed. Try again.", 2500)
+            self.entry1.set_text ('')
+            return
+        self.block_ui ()
+        VideoDownloadThread (youtube_video).start ()
+
+
+    def select_item (self, widget=None):
+        tree = self.treeview1.get_selection ()
+        model, selection = tree.get_selected ()
+        if not selection:
+            return
+
+        url = model.get_value (selection, 0)
+        thread_id = video_queue.getThreadId (url)
+        thread = video_queue.getVideoThread (thread_id)
+
+        if thread and thread.isAlive () and thread.status == thread.__class__.WAITING:
+            self.toolbutton1.set_sensitive (True)
+            self.toolbutton2.set_sensitive (True)
+            self.toolbutton2.set_label ("Remove")
+        elif thread and thread.isAlive () and thread.status == thread.__class__.READY:
+            self.toolbutton1.set_sensitive (False)
+            self.toolbutton2.set_sensitive (True)
+            self.toolbutton2.set_label ("Cancel")
+        elif thread and thread.isAlive () and thread.status == thread.__class__.PARSING:
+            self.toolbutton1.set_sensitive (False)
+            self.toolbutton2.set_sensitive (False)
+            self.toolbutton2.set_label ("Remove")
+        # Handle case of a cancelled download waiting to stop
+        elif thread and thread.isAlive () and thread.status == thread.__class__.CANCELLED:
+            self.toolbutton1.set_sensitive (False)
+            self.toolbutton2.set_sensitive (False)
+            self.toolbutton2.set_label ("Wait")
+        elif thread:
+            self.toolbutton1.set_sensitive (False)
+            self.toolbutton2.set_sensitive (True)
+            self.toolbutton2.set_label ("Remove")
+
+        path = model.get_path (selection)
+        index = path[0]
+
+        queue_length = video_queue.queue_length ()
+
+        if queue_length >= 2:
+            self.toolbutton3.set_sensitive (True)
+            if index == queue_length-1:
+                self.toolbutton4.set_sensitive (True)
+                self.toolbutton5.set_sensitive (False)
+            elif index == 0:
+                self.toolbutton4.set_sensitive (False)
+                self.toolbutton5.set_sensitive (True)
+            else:
+                self.toolbutton4.set_sensitive (True)
+                self.toolbutton5.set_sensitive (True)
+        elif queue_length > 0:
+            self.toolbutton3.set_sensitive (True)
+
+        return True
+
+
+    def remove (self, widget):
+        tree = self.treeview1.get_selection ()
+        model, selection = tree.get_selected ()
+        if not selection:
+            return
+
+        url = model.get_value (selection, 0)
+        thread_id = video_queue.getThreadId (url)
+        thread = video_queue.getVideoThread (thread_id)
+
+        if thread and thread.isAlive () and thread.status == thread.WAITING:
+            video_queue.removeDownload (thread_id)
+        elif thread and thread.isAlive () and thread.status == thread.__class__.READY:
+            video_queue.finishDownload (thread_id)
+        # Handle case of a cancelled download waiting to stop
+        elif thread and thread.isAlive () and thread.status == thread.__class__.CANCELLED:
+            print "Already cancelled. Waiting. Don't do anything"
+            return
+        elif thread:
+            video_queue.removeDownload (thread_id)
+
+        self.block_partial_ui ()
+        return True
+
+
+    def show_preferences (self, widget):
+        prop_win.show ()
+
+
+    def clear_complete (self, widget):
+        video_queue.clear_complete ()
+        self.block_partial_ui ()
+
+
+    def transcode_check (self, widget):
+        app_settings.transcode = not app_settings.transcode
+        if not app_settings.transcode:
+            self.checkbutton3.set_active (True)
+            self.checkbutton3.set_sensitive (False)
+        else:
+            self.checkbutton3.set_sensitive (True)
+
+
+    def overwrite_check (self, widget):
+        app_settings.overwrite = not app_settings.overwrite
+
+
+    def keep_flvs_check (self, widget):
+        app_settings.keep_flv_files = not app_settings.keep_flv_files
+
+
+    def move_up (self, widget):
+        """Move Up"""
+        tree = self.treeview1.get_selection ()
+        model, selection = tree.get_selected ()
+        url = model.get_value (selection, 0)
+        thread_id = video_queue.getThreadId (url)
+
+        path = model.get_path (selection)
+        index = path[0]
+        previous = model.get_iter ((index-1),)
+        dude_url = model.get_value (previous, 0)
+        prev_thread_id = video_queue.getThreadId (dude_url)
+
+        video_queue.swap_items (thread_id, prev_thread_id)
+        tree.select_path (index-1)
+        self.select_item ()
+
+
+    def move_down (self, widget):
+        """Move Down"""
+        tree = self.treeview1.get_selection ()
+        model, selection = tree.get_selected ()
+        url = model.get_value (selection, 0)
+        thread_id = video_queue.getThreadId (url)
+
+        path = model.get_path (selection)
+        index = path[0]
+        previous = model.get_iter ((index+1),)
+        dude_url = model.get_value (previous, 0)
+        prev_thread_id = video_queue.getThreadId (dude_url)
+
+        video_queue.swap_items (thread_id, prev_thread_id)
+        tree.select_path (index+1)
+        self.select_item ()
+
+
+    def quit_app (self, widget, user_data=None):
+        if video_queue.is_queue_active ():
+            self.show_caution_window ()
+            return True
+
+        app_settings.output_dir = self.folder_chooser.get_filename ()
+        gtk.main_quit ()
+
+
+    def show_caution_window (self):
+        temp_wtree = gtk.glade.XML (self.gladefile, 'dialog1')
+        caution_window = temp_wtree.get_widget ('dialog1')
+        caution_window.run ()
+        caution_window.destroy ()
+
+
+    def open_site (self, widget, url):
+        import webbrowser
+        webbrowser.open (url)
+
+
+    def change_default_bitrate (self, widget):
+        format = widget.get_active ()
+        if format in VideoItem.VIDEO_FORMATS:
+            app_settings.format = format
+            bitrate_list = gtk.ListStore (gobject.TYPE_INT)
+            self.combobox2.set_model (bitrate_list)
+
+            for bitrate in self._video_bitrate_options:
+                bitrate_list.append ([bitrate])
+            if app_settings.vbitrate in self._video_bitrate_options:
+                self.combobox2.set_active (self._video_bitrate_options.index (app_settings.vbitrate))
+
+            self.resolution_combobox.set_sensitive (True)
+        else:
+            app_settings.format = format
+            bitrate_list = gtk.ListStore (gobject.TYPE_INT)
+            self.combobox2.set_model (bitrate_list)
+            for n in range (1,13):
+                bitrate_list.append ([n*32])
+
+            self.combobox2.set_active ((app_settings.abitrate / 32)-1)
+            self.resolution_combobox.set_sensitive (False)
+
+
+    def block_ui (self):
+        self.block_partial_ui ()
+        self.entry1.set_sensitive (False)
+        self.button1.set_sensitive (False)
+
+
+    def block_partial_ui (self):
+        self.toolbutton2.set_label ("Remove")
+        self.toolbutton1.set_sensitive (False)
+        self.toolbutton2.set_sensitive (False)
+        self.toolbutton3.set_sensitive (False)
+        self.toolbutton4.set_sensitive (False)
+        self.toolbutton5.set_sensitive (False)
+        tree = self.treeview1.get_selection ()
+        model, selection = tree.get_selected ()
+        if selection:
+            index = model.get_path (selection)[0]
+            tree.select_path (index)
+            self.select_item ()
+
+
+    def unlock_partial_ui (self):
+        self.entry1.set_sensitive (True)
+        self.button1.set_sensitive (True)
+        self.entry1.set_text ("")
+        tree = self.treeview1.get_selection ()
+        tree.select_path (video_queue.queue_length ()-1,)
+        self.select_item ()
+
+
+    def unlock_ui (self):
+        self.unlock_partial_ui ()
+        self.spinbutton1.set_sensitive (True)
+        self.combobox.set_sensitive (True)
+        self.checkbutton1.set_sensitive (True)
+        self.checkbutton2.set_sensitive (True)
+        if app_settings.transcode:
+            self.checkbutton3.set_sensitive (True)
+        self.folder_chooser.set_sensitive (True)
+
+    def show_sites_window (self, widget):
+        sites_window = self.window.get_widget ('sites_dialog')
+        sites_window.show ()
+
+
+    def hide_sites_window (self, widget, data=None):
+        """Hide non-modal sites dialog window"""
+        sites_window = self.window.get_widget ('sites_dialog')
+        sites_window.hide ()
+
+
+    def keep_sites_window (self, widget, data=None):
+        """
+        Keep supported sites window from being destroyed
+        when close button is clicked. Window will be hidden later
+        from the response handler
+        """
+        return True
+
+
+    def change_bitrate (self, widget):
+        if app_settings.format in VideoItem.AUDIO_FORMATS:
+            app_settings.abitrate = (widget.get_active ()*32)+32
+        else:
+            index = widget.get_active ()
+            app_settings.vbitrate = self._video_bitrate_options[index]
+
+
+    def resolution_change (self, widget):
+        app_settings.output_res = widget.get_active ()
+
+
+    def change_auto_download (self, widget):
+        app_settings.auto_download = not app_settings.auto_download
+
+
+    def __init__ (self):
+        for path in media_paths:
+            glade_file = os.path.join (path, "youtubed-2x.glade")
+            if os.path.exists (glade_file):
+                self.gladefile = glade_file
+                break
+
+        gtk.about_dialog_set_url_hook (self.open_site)
+        self._video_bitrate_options = [384, 512, 768, 1024, 1536, 2000]
+        self.window = gtk.glade.XML (self.gladefile)
+        self.main_window = self.window.get_widget ('window1')
+        self.about_window = self.window.get_widget ('aboutdialog1')
+        self.about_window.set_comments ('Version %s' % VERSION)
+        self.about_window.set_name (APP_NAME)
+        self.mainbar1 = self.window.get_widget ('menubar1')
+        self.entry1 = self.window.get_widget ('entry1')
+        self.button1 = self.window.get_widget ('button1')
+        self.button2 = self.window.get_widget ('button2')
+        self.toolbutton1 = self.window.get_widget ('toolbutton1')
+        self.toolbutton2 = self.window.get_widget ('toolbutton2')
+        self.toolbutton3 = self.window.get_widget ('toolbutton3')
+        self.toolbutton4 = self.window.get_widget ('toolbutton4')
+        self.toolbutton5 = self.window.get_widget ('toolbutton5')
+        self.combobox2 = self.window.get_widget ("combobox2")
+
+        if app_settings.format in VideoItem.VIDEO_FORMATS:
+            bitrate_list = gtk.ListStore (gobject.TYPE_INT)
+            self.combobox2.set_model (bitrate_list)
+            for bitrate in self._video_bitrate_options:
+                bitrate_list.append ([bitrate])
+            if app_settings.vbitrate in self._video_bitrate_options:
+                self.combobox2.set_active (self._video_bitrate_options.index (app_settings.vbitrate))
+            else:
+                self.combobox2.set_active (0)
+                app_settings.vbitrate = self._video_bitrate_options[0]
+        else:
+            bitrate_list = gtk.ListStore (gobject.TYPE_INT)
+            self.combobox2.set_model (bitrate_list)
+            for n in range (1,13):
+                bitrate_list.append ([n*32])
+            self.combobox2.set_active ((app_settings.abitrate / 32)-1)
+
+        self.combobox = self.window.get_widget ('combobox1')
+        self.combobox.set_active (app_settings.format)
+        self.checkbutton1 = self.window.get_widget ('checkbutton1')
+        self.checkbutton2 = self.window.get_widget ('checkbutton2')
+        self.checkbutton3 = self.window.get_widget ('checkbutton3')
+        self.auto_download_check = self.window.get_widget ("auto_download_check")
+        self.resolution_combobox = self.window.get_widget ("resolution_combobox")
+        self.resolution_combobox.set_active (app_settings.output_res)
+
+        if not app_settings.transcode:
+            if not app_settings.keep_flv_files:
+                app_settings.keep_flv_files = True
+            self.checkbutton3.set_active (True)
+            self.checkbutton3.set_sensitive (False)
+            self.checkbutton1.set_active (False)
+        if app_settings.overwrite:
+            self.checkbutton2.set_active (True)
+        if not app_settings.keep_flv_files:
+            self.checkbutton3.set_active (False)
+
+        self.auto_download_check.set_active (app_settings.auto_download)
+
+        self.treeview1 = self.window.get_widget ("treeview1")
+        self.column1 = gtk.TreeViewColumn ("URL", gtk.CellRendererText(), text=0)
+        self.column1.set_sizing (gtk.TREE_VIEW_COLUMN_FIXED)
+        self.column1.set_min_width (200)
+        self.column1.set_resizable (True)
+        self.column1.set_expand (True)
+        self.column2 = gtk.TreeViewColumn ("Name")
+        cell = gtk.CellRendererPixbuf ()
+        self.column2.pack_start (cell, False)
+        #self.column2.add_attribute (cell, "pixbuf", 6)
+        cell2 = gtk.CellRendererText ()
+        self.column2.pack_start (cell2, False)
+        self.column2.set_cell_data_func (cell, self._cell_render_service)
+        self.column2.set_attributes (cell2, text=1)
+#        self.column2 = gtk.TreeViewColumn ("Name", gtk.CellRendererText(), text=1)
+        self.column2.set_sizing (gtk.TREE_VIEW_COLUMN_FIXED)
+        self.column2.set_min_width (175)
+        self.column2.set_resizable (True)
+        self.column2.set_expand (True)
+
+        self.column5 = gtk.TreeViewColumn ("Speed", gtk.CellRendererText(), text=4)
+        self.column5.set_sizing (gtk.TREE_VIEW_COLUMN_FIXED)
+        self.column5.set_min_width (100)
+
+        self.column6 = gtk.TreeViewColumn ("Size", gtk.CellRendererText (), text=5)
+        self.column6.set_sizing (gtk.TREE_VIEW_COLUMN_FIXED)
+        self.column6.set_min_width (100)
+
+        self.column3 = gtk.TreeViewColumn ("Progress", gtk.CellRendererProgress(), value=2)
+        self.column3.set_min_width (75)
+        self.column4 = gtk.TreeViewColumn ("Status", gtk.CellRendererText(), text=3)
+
+        #self.treeview1.append_column (self.column1)
+#        print dir (self.treeview1)
+        self.treeview1.connect ("button-press-event", self.treeview_right)
+#        print hasattr (self.treeview1, "connect")
+        self.popup = self.window.get_widget ("treeview_menu1")
+        self.treeview1.append_column (self.column2)
+        self.treeview1.append_column (self.column6)
+        self.treeview1.append_column (self.column3)
+        self.treeview1.append_column (self.column5)
+        self.treeview1.append_column (self.column4)
+        self._site_images_cache = {}
+
+        self.treeview1.set_model (video_queue.tree_model)
+
+        self.folder_chooser = self.window.get_widget ("filechooserbutton1")
+        self.folder_chooser.set_current_folder (app_settings.output_dir)
+        self.statusbar = self.window.get_widget ("statusbar1")
+        #self.speed_label = self.window.get_widget ("speedlabel")
+        self.statusbar_context_id = self.statusbar.get_context_id ("Statusbar")
+
+#        self.update_statusbar ("HAMTARO")
+        video_queue.register ("unblock-ui", self.unlock_partial_ui)
+        video_queue.register ("block-ui", self.block_partial_ui)
+#        video_queue.register ("download-finished", self.select_now_item)
+
+        dic = {'on_window1_delete_event': self.quit_app, 'on_quit1_activate': self.quit_app, 'on_button1_clicked': self.add_queue,
+               'on_preferences2_activate': self.show_preferences, 'on_about1_activate': self.show_about_window, 'on_aboutdialog1_response': self.hide_about_window,
+               'on_toolbutton1_clicked': self.startProcess, 'on_treeview1_cursor_changed': self.select_item,
+               'on_toolbutton2_clicked': self.remove,
+               'on_checkbutton1_toggled': self.transcode_check, 'on_checkbutton2_toggled': self.overwrite_check,
+               'on_checkbutton3_toggled': self.keep_flvs_check, 'on_entry1_activate': self.add_queue,
+               'on_toolbutton3_clicked': self.clear_complete, 'on_toolbutton4_clicked': self.move_up,
+               'on_toolbutton5_clicked': self.move_down, 'on_aboutdialog1_delete_event': self.keep_about_window, 'on_combobox1_changed': self.change_default_bitrate,
+'on_sites_activate': self.show_sites_window, 'on_close_sites_clicked': self.hide_sites_window, 'on_sites_dialog_delete_event': self.keep_sites_window,
+'on_sites_dialog_response': self.hide_sites_window, 'on_combobox2_changed': self.change_bitrate, "on_resolution_combobox_changed": self.resolution_change,
+        "on_auto_download_check_toggled": self.change_auto_download}
+        self.window.signal_autoconnect (dic)
+        dic = {"on_copyurl_menuitem_activate": self.copy_url_selection}
+        self.window.signal_autoconnect (dic)
+
+
+    def treeview_right (self, widget, event):
+        tree = self.treeview1.get_selection ()
+        model, selection = tree.get_selected ()
+        if not selection:
+            return
+
+        if event.button == 3:
+            self.popup.popup (None, None, None, event.button, event.time)
+
+
+    def copy_url_selection (self, widget):
+        tree = self.treeview1.get_selection ()
+        model, selection = tree.get_selected ()
+        if not selection:
+            return
+
+        url = model.get_value (selection, 0)
+#        print url
+        clipboard = gtk.Clipboard ()
+        clipboard.set_text (url)
+
+
+    def _cell_render_service (self, column, cell, model, iter):
+        #print "In Pixbuf"
+        picfilename = model.get_value (iter, 6)
+        if not picfilename in self._site_images_cache:
+            # Check media paths for icon image
+            for path in media_paths:
+                image_file = os.path.join (path, "service_images", picfilename)
+                # Check that the image exists in the path
+                if os.path.exists (image_file):
+                    image = gtk.gdk.pixbuf_new_from_file_at_size (image_file, 16, 16)
+                    self._site_images_cache.update ({picfilename: image})
+                    cell.set_property ('pixbuf', image)
+            # If no image was found, add None to cache
+            if picfilename not in self._site_images_cache:
+                self._site_images_cache.update ({picfilename: None})
+
+#        print cell.get_property ('pixbuf')
+        ### RESETING THE PROPERTY IS NOT NECESSARY ###
+        # TODO: CHANGE
+        # Check that the cache does not contain None for a site parser
+        elif self._site_images_cache[picfilename] != None:
+            cell.set_property ('pixbuf', self._site_images_cache[picfilename])
+
+
+
+if __name__ == '__main__':
+    # If running on Windows, write output and error messages to text files.
+    # Needed due to py2exe
+    if WINDOWS:
+        sys.stdout = open ("log.txt", "w")
+        sys.stderr = open ("errors.log", "w")
+
+    # TODO: Find a better way around this issue
+    media_paths = [
+            # Can't use __file__ here. Py2exe does not like it
+            os.path.join (os.path.dirname (sys.argv[0]), "data"), # Running locally
+            os.path.join (sys.prefix, "share", "youtubed-2x"), # Installed
+            os.path.join (sys.prefix, "local", "share", "youtubed-2x"), # Installed to prefix + "local"
+    ]
+
+    app_settings = settings.Settings ()
+    try:
+        app_settings.readConfigFile ()
+    except app_settings.InvalidConfig as exception:
+        print >> sys.stderr, "%s.\nReverting to default settings." % exception
+        app_settings.setDefaults ()
+
+    video_queue = QueueManager (sem_limit=app_settings.process_limit)
+    newbie = YouTubeDownloader ()
+    prop_win = PropertiesWindow (newbie.gladefile)
+    VideoItem.setFFmpegLocation (app_settings.ffmpeg_location)
+    if app_settings.use_proxy and app_settings.proxy_server and app_settings.proxy_port:
+        set_proxy (app_settings.proxy_server, app_settings.proxy_port)
+
+    gtk.gdk.threads_init ()
+    gtk.gdk.threads_enter ()
+    gtk.main ()
+    gtk.gdk.threads_leave ()
+    app_settings.writeConfigFile ()
+

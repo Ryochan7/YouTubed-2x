@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=2009.06.17
+Encoding=UTF-8
+Name=YouTubed-2x (GTK)
+Comment=Download and transcode flash video to GP2X video files
+Exec=youtubed-2x_gui
+Terminal=false
+Type=Application
+Categories=Network
+
