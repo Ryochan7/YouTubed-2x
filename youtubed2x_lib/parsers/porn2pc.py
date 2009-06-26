@@ -1,9 +1,9 @@
 import re
 from youtubed2x_lib.parsers import Parser_Helper
-from youtubed2x_lib.parsers.pornotube import PornoTube_Parser
-from youtubed2x_lib.parsers.redtube import RedTube_Parser
-from youtubed2x_lib.parsers.pornhub import Pornhub_Parser
-from youtubed2x_lib.parsers.pacoporn import PacoPorn_Parser
+from pornotube import PornoTube_Parser
+from redtube import RedTube_Parser
+from pornhub import Pornhub_Parser
+from pacoporn import PacoPorn_Parser
 
 
 class Porn2Pc_Parser (Parser_Helper):
