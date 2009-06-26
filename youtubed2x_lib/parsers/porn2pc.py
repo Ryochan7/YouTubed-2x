@@ -14,10 +14,6 @@ class Porn2Pc_Parser (Parser_Helper):
     host_str = "porn2pc.com"
 
 
-    def __init__ (self, video_id):
-        super (Porn2pc_Parser, self).__init__ (video_id)
-
-
     @classmethod
     def checkURL (cls, url):
         parsers = (PornoTube_Parser, RedTube_Parser, Pornhub_Parser, PacoPorn_Parser,)

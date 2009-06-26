@@ -13,9 +13,6 @@ class GiantBomb_Parser (Parser_Helper):
     parser_type = "GiantBomb"
     host_str = "giantbomb.com"
 
-    def __init__ (self, video_id):
-        super (GiantBomb_Parser, self).__init__ (video_id)
-
 
     def getVideoPage (self, account="", password=""):
         page, newurl = getPage (self.page_url)

@@ -12,9 +12,6 @@ class Dailymotion_Parser (Parser_Helper):
     parser_type = "Dailymotion"
     host_str = "dailymotion.com"
 
-    def __init__ (self, video_id):
-        super (Dailymotion_Parser, self).__init__ (video_id)
-
 
     def _parseRealURL (self, commands):
         """Get the real url for the video"""

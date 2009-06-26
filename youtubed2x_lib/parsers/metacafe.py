@@ -11,9 +11,6 @@ class Metacafe_Parser (Parser_Helper):
     parser_type = "Metacafe"
     host_str = "metacafe.com"
 
-    def __init__ (self, video_id):
-        super (Metacafe_Parser, self).__init__ (video_id)
-
 
     def _parseRealURL (self, commands):
         """Get the real url for the video"""

@@ -19,9 +19,6 @@ class PornoTube_Parser (Parser_Helper):
     parser_type = "PornoTube"
     host_str = "pornotube.com"
 
-    def __init__ (self, video_id):
-        super (PornoTube_Parser, self).__init__ (video_id)
-
 
     def getVideoPage (self):
         page, newurl = getPage (self.page_url, self.video_url_age_post)

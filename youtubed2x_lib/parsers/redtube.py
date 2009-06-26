@@ -14,9 +14,6 @@ class RedTube_Parser (Parser_Helper):
     parser_type = "RedTube"
     host_str = "redtube.com"
 
-    def __init__ (self, video_id):
-        super (RedTube_Parser, self).__init__ (video_id)
-
 
     # TODO: Fix to use dynamic expires date
     def getVideoPage (self, account="", password=""):

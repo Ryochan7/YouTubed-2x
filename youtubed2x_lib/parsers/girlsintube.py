@@ -12,9 +12,6 @@ class GirlsInTube_Parser (Parser_Helper):
     parser_type = "GirlsInTube"
     host_str = "girlsintube.com"
 
-    def __init__ (self, video_id):
-        super (GirlsInTube_Parser, self).__init__ (video_id)
-
 
     def getVideoPage (self, account="", password=""):
         page, newurl = getPage (self.page_url)

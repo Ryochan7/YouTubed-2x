@@ -14,10 +14,6 @@ class PacoPorn_Parser (Parser_Helper):
     host_str = "pacoporn.com"
 
 
-    def __init__ (self, video_id):
-        super (PacoPorn_Parser, self).__init__ (video_id)
-
-
     def getVideoPage (self, account="", password=""):
         page, newurl = getPage (self.__class__.video_details_url_str % self.video_id)
         return page, newurl

@@ -11,9 +11,6 @@ class MyVideo_Parser (Parser_Helper):
     parser_type = "MyVideo"
     host_str = "myvideo.de"
 
-    def __init__ (self, video_id):
-        super (MyVideo_Parser, self).__init__ (video_id)
-
 
     def _parseRealURL (self, commands):
         """Get the real url for the video"""
