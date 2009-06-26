@@ -1,5 +1,6 @@
 import unittest
 import youtubed2x_lib.videoitem as videoitem
+from youtubed2x_lib.parsermanager import parser_manager
 import youtubed2x_lib.other as other
 
 testURLs = ("http://www.youtube.com/watch?v=EjI4e3QEoPQ",
@@ -26,7 +27,8 @@ class ParseTest (unittest.TestCase):
     def testUrlValidation (self):
         """Test the regular expressions for each parser"""
         for URL in testURLs:
-            youtube_video = videoitem.validateURL (URL)
+#            youtube_video = videoitem.validateURL (URL)
+            youtube_video = parser_manager.validateURL (URL)
             self.assert_ (youtube_video, "The URL (%s) tested was invalid" % URL)
 
 
@@ -44,7 +46,7 @@ class ParseTest (unittest.TestCase):
         for URL in testURLs:
             youtube_video = videoitem.validateURL (URL)
             self.assert_ (youtube_video, "The URL (%s) tested was invalid" % URL)
-            print "Testing parser type: %s" % youtube_video.parser.type
+            print "Testing parser type: %s" % youtube_video.parser.getType ()
             youtube_video.getVideoInformation ()
 
 

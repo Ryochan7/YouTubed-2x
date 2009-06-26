@@ -15,7 +15,7 @@ class ParserManager (object):
         if not issubclass (parser, Parser_Helper):
             raise TypeError ("A subclass of Parser_Helper was not passed")
 
-        identifier = parser.getType ().lower ()
+        identifier = parser.host_str
         self.parsers.update ({identifier: parser})
         print self.parsers[identifier]
         print identifier
@@ -135,7 +135,7 @@ class ParserManager (object):
             return None
         elif hostname.startswith ("www."):
             hostname = hostname.lstrip ("www.")
-        hostname = hostname.split (".")[0]
+#        hostname = hostname.split (".")[0]
 
         print hostname
         if hostname not in self.parsers:

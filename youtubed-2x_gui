@@ -150,7 +150,7 @@ class QueueManager (object):
 
         self._sem_limit = sem_limit
         self.lock = Lock ()
-        self.tree_model = gtk.ListStore (gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_INT, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
+        self.tree_model = gtk.ListStore (gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_INT, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
         self.semaphore = Semaphore (self._sem_limit)
 
 
@@ -183,7 +183,7 @@ class QueueManager (object):
         id = self.next_status_id
         self.next_status_id += 1
         gtk.gdk.threads_enter ()
-        self.dude[id] = {"iter": self.tree_model.append ([thread.video.parser.page_url, thread.video.parser.page_url, 0, "Getting Info", "", "", thread.video.parser.getImageString ()]), "thread": thread, "last_update": time.time ()}
+        self.dude[id] = {"iter": self.tree_model.append ([thread.video.parser.page_url, thread.video.parser.page_url, 0, "Getting Info", "", ""]), "thread": thread, "last_update": time.time ()}
 #       self.tree_model.append (['http://www.youtube.com/watch?v=KZ1aZjTrh3I', 'http://www.youtube.com/watch?v=KZ1aZjTrh3I', 0, 'Waiting', "100 KB", "50 MB"]) # Replace 2nd URL with parsed title once page is parsed
         gtk.gdk.threads_leave ()
         self._num_objects += 1
@@ -1111,7 +1111,6 @@ class YouTubeDownloader (object):
         self.treeview1.append_column (self.column3)
         self.treeview1.append_column (self.column5)
         self.treeview1.append_column (self.column4)
-        self._site_images_cache = {}
 
         self.treeview1.set_model (video_queue.tree_model)
 
@@ -1166,27 +1165,19 @@ class YouTubeDownloader (object):
 
     def _cell_render_service (self, column, cell, model, iter):
         #print "In Pixbuf"
-        picfilename = model.get_value (iter, 6)
-        if not picfilename in self._site_images_cache:
-            # Check media paths for icon image
-            for path in media_paths:
-                image_file = os.path.join (path, "service_images", picfilename)
-                # Check that the image exists in the path
-                if os.path.exists (image_file):
-                    image = gtk.gdk.pixbuf_new_from_file_at_size (image_file, 16, 16)
-                    self._site_images_cache.update ({picfilename: image})
-                    cell.set_property ('pixbuf', image)
-            # If no image was found, add None to cache
-            if picfilename not in self._site_images_cache:
-                self._site_images_cache.update ({picfilename: None})
+#        picfilename = model.get_value (iter, 6)
+#        print cell.get_property ("pixbuf")
+#        if cell.get_property ("pixbuf"):
+#            return
 
-#        print cell.get_property ('pixbuf')
-        ### RESETING THE PROPERTY IS NOT NECESSARY ###
-        # TODO: CHANGE
-        # Check that the cache does not contain None for a site parser
-        elif self._site_images_cache[picfilename] != None:
-            cell.set_property ('pixbuf', self._site_images_cache[picfilename])
-
+        url = model.get_value (iter, 0)
+        thread_id = video_queue.getThreadId (url)
+        thread = video_queue.getVideoThread (thread_id)
+        
+        image_data = thread.video.parser.__class__.getImageData ()
+        image = gtk.gdk.pixbuf_new_from_data (image_data, gtk.gdk.COLORSPACE_RGB, True, 8, 16, 16, 16*4)
+        cell.set_property ('pixbuf', image)
+        return
 
 
 if __name__ == '__main__':

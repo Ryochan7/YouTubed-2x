@@ -98,3 +98,8 @@ class Parser_Helper (object):
         raise NotImplementedError
 
 
+    @staticmethod
+    def getImageData ():
+        raise NotImplementedError
+
+
