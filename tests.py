@@ -44,7 +44,8 @@ class ParseTest (unittest.TestCase):
         """ Test each parser and get the information for a video """
         print ""
         for URL in testURLs:
-            youtube_video = videoitem.validateURL (URL)
+#            youtube_video = videoitem.validateURL (URL)
+            youtube_video = parser_manager.validateURL (URL)
             self.assert_ (youtube_video, "The URL (%s) tested was invalid" % URL)
             print "Testing parser type: %s" % youtube_video.parser.getType ()
             youtube_video.getVideoInformation ()
@@ -52,7 +53,8 @@ class ParseTest (unittest.TestCase):
 
     def testPadding (self):
         """Test that proper padding is done in the VideoItem.buildCommandList method"""
-        youtube_video = videoitem.validateURL (testURLs[0])
+#        youtube_video = videoitem.validateURL (testURLs[0])
+        youtube_video = parser_manager.validateURL (testURLs[0])
         youtube_video.title = "Tester"
         youtube_video.setFilePaths (".")
         #youtube_video.setOutputRes (youtube_video.__class__.RES_640)

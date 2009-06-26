@@ -20,18 +20,15 @@ class Porn2Pc_Parser (Parser_Helper):
 
     @classmethod
     def checkURL (cls, url):
-        print "IN HERE"
         parsers = (pornotube.PornoTube_Parser, redtube.RedTube_Parser, pornhub.Pornhub_Parser, pacoporn.PacoPorn_Parser,)
         match = cls.const_video_url_re.match (url)
         if not match:
             return None
 
         page_id = match.group (2)
-        print page_id
 
         for parser in parsers:
             test_url = "%s%s" % (parser.domain_str, page_id)
-            print test_url
             page_parser = parser.checkURL (test_url)
             if page_parser:
                 return page_parser

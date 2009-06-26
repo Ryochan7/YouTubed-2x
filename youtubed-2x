@@ -28,7 +28,8 @@ import sys
 import subprocess
 import time
 from optparse import OptionParser
-from youtubed2x_lib.videoitem import VideoItem, validateURL
+from youtubed2x_lib.videoitem import VideoItem
+from youtubed2x_lib.parsermanager import parser_manager
 from youtubed2x_lib.other import VERSION, PageNotFound, APP_NAME, WINDOWS
 from youtubed2x_lib.download import FileDownloader
 
@@ -114,7 +115,7 @@ if not os.path.isdir (videos_dir):
 #### and transcode any specified videos             ####
 for full_url in command_args:
     print
-    youtube_video = validateURL (full_url)
+    youtube_video = parser_manager.validateURL (full_url)
     if not youtube_video:
         print >> sys.stderr, "An invalid url (%s) was passed. Exiting." % full_url
         sys.exit (42)
@@ -146,7 +147,7 @@ for full_url in command_args:
         print >> sys.stderr, "%s. Exiting." % e.message
         sys.exit (42)
 
-    print "%s video" % youtube_video.parser.type
+    print "%s video" % youtube_video.parser.getType ()
     print "Title: %s" % youtube_video.title
 
     if command_opts.format == 'avi':
@@ -165,14 +166,14 @@ for full_url in command_args:
 
     #### Download and Transcode file #####
     if command_opts.sitefolders:
-        if not os.path.isdir (os.path.join (videos_dir, youtube_video.parser.type)):
+        if not os.path.isdir (os.path.join (videos_dir, youtube_video.parser.getType ())):
             try:
-                os.mkdir (os.path.join (videos_dir, youtube_video.parser.type))
+                os.mkdir (os.path.join (videos_dir, youtube_video.parser.getType ()))
             except OSError:
                 print >> sys.stderr, "Directory for site %s could not be made. Exiting."
                 sys.exit (3)
 
-        youtube_video.setFilePaths (os.path.join (videos_dir, youtube_video.parser.type))
+        youtube_video.setFilePaths (os.path.join (videos_dir, youtube_video.parser.getType ()))
     else:
         youtube_video.setFilePaths (videos_dir)
 

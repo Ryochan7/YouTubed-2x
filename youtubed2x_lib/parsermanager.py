@@ -17,8 +17,8 @@ class ParserManager (object):
 
         identifier = parser.host_str
         self.parsers.update ({identifier: parser})
-        print self.parsers[identifier]
-        print identifier
+#        print self.parsers[identifier]
+#        print identifier
 
 
     def _register_app_parsers (self):
@@ -28,7 +28,7 @@ class ParserManager (object):
         if "__init__.py" in file_list:
             file_list.remove ("__init__.py")
 
-        print file_list
+#        print file_list
         for file in file_list:
             if file.endswith (".py"):
                 possible_module = file.rstrip (".py")
@@ -41,7 +41,7 @@ class ParserManager (object):
             if not possible_module:
                 continue
 
-            print "DUDE parsers.%s" % possible_module
+#            print "DUDE parsers.%s" % possible_module
 
             try:
                 exec ("import parsers.%s" % possible_module)
@@ -50,7 +50,7 @@ class ParserManager (object):
                 continue
 
             parser_module = eval ("parsers.%s" % possible_module)
-            print parser_module
+#            print parser_module
 
             module_contents = dir (parser_module)
             parser = None
@@ -59,10 +59,10 @@ class ParserManager (object):
                     parser = getattr (parser_module, item)
 
             if parser and issubclass (parser, Parser_Helper):
-                print "CORRECT"
+#                print "CORRECT"
                 self.register (parser)
 
-        print self.parsers
+#        print self.parsers
 
 
     def _register_user_parsers (self):
@@ -87,8 +87,8 @@ class ParserManager (object):
 
         sys.path.insert (1, user_parser_dir)
 
-        print sys.path
-        print file_list
+#        print sys.path
+#        print file_list
 
         for file in file_list:
             if file.endswith (".py"):
@@ -96,7 +96,13 @@ class ParserManager (object):
             # Useful for Py2exe build
             elif file.endswith (".pyo"):
                 possible_module = file.rstrip (".pyo")
-            print possible_module
+            else:
+                possible_module = None
+
+#            print possible_module
+
+            if not possible_module:
+                continue
 
             try:
                 exec ("import %s" % possible_module)
@@ -105,7 +111,7 @@ class ParserManager (object):
                 continue
 
             parser_module = eval (possible_module)
-            print parser_module
+#            print parser_module
 
             module_contents = dir (parser_module)
             parser = None
@@ -114,11 +120,11 @@ class ParserManager (object):
                     parser = getattr (parser_module, item)
 
             if parser and issubclass (parser, Parser_Helper):
-                print "CORRECT"
+#                print "CORRECT"
                 self.register (parser)
 
         del sys.path[1]
-        print "HAM"
+#        print "HAM"
 
     
     def validateURL (self, full_url, video_item=True):
@@ -126,10 +132,11 @@ class ParserManager (object):
         if not isinstance (full_url, str):
             raise TypeError ("Argument must be a string")
 
-        print full_url
+#        print full_url
         youtube_video = None
         spliturl = urlparse.urlsplit (full_url)
         hostname = spliturl.hostname
+#        print len (self.parsers.keys ())
 
         if not hostname:
             return None
@@ -137,23 +144,24 @@ class ParserManager (object):
             hostname = hostname.lstrip ("www.")
 #        hostname = hostname.split (".")[0]
 
-        print hostname
+#        print hostname
         if hostname not in self.parsers:
             return None
 
-        import time
-        start_time = time.time ()
+#        import time
+#        start_time = time.time ()
         page_parser = self.parsers[hostname].checkURL (full_url)
         if page_parser:
             if video_item:
                 youtube_video = VideoItem (page_parser)
             elif page_parser:
                 youtube_video = page_parser
-        end_time = time.time ()
-        print "Time elapsed: %s" % (end_time - start_time)
+#        end_time = time.time ()
+#        print "Time elapsed: %s" % (end_time - start_time)
 
         return youtube_video
 
 
 parser_manager = ParserManager ()
+
 

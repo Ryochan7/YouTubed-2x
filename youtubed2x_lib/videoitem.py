@@ -2,7 +2,7 @@ import os, sys
 import re
 import subprocess
 from other import WINDOWS
-from siteparsers import *
+
 
 class VideoItem (object):
 #    command_dict = {'application': 'ffmpeg', 'vcodec': 'xvid', 'vres': '320x240', 'bitrate': '%ik', 'acodec': 'copy', 'output_file': '%s'}
@@ -57,7 +57,8 @@ class VideoItem (object):
             # If no data was passed, assume that the portal is forwarding to a new site
             if not page:
                 # Check if the portal forwarded to a site that is supported
-                parser = validateURL (newurl, False)
+                from parsermanager import parser_manager
+                parser = parser_manager.validateURL (newurl, False)
                 if not parser:
                     raise self.parser.InvalidPortal ("The portal forwarded to a site not supported by this application")
                 # Check if the parser has changed by checking the page urls
@@ -327,39 +328,5 @@ in a FAT32 filesystem. Incomplete"""
         if status:
             return False
         return True
-
-
-video_parser_list = (YouTube_Parser, PornoTube_Parser, RedTube_Parser, Veoh_Parser, YouPorn_Parser,
-GoogleVideo_Parser, Metacafe_Parser, Dailymotion_Parser, Pornhub_Parser, Tube8_Parser, MyVideo_Parser,
-MySpaceTV_Parser, Guba_Parser, GiantBomb_Parser, GirlsInTube_Parser, PacoPorn_Parser, Porn2Pc_Parser,)
-#print len (video_parser_list)
-
-
-def validateURL (full_url, video_item=True):
-    """Make sure the url passed is in a valid form and return a video parser object"""
-    if not isinstance (full_url, str):
-        raise TypeError ("Argument must be a string")
-
-    youtube_video = None
-
-    import time
-    start_time = time.time ()
-    # Use each parser regular expression to determine what type of URL was given
-    for parser in video_parser_list:
-        page_parser = parser.checkURL (full_url)
-        if page_parser:
-            end_time = time.time ()
-            print "Time elapsed: %s" % (end_time - start_time)
-            if video_item:
-                youtube_video = VideoItem (page_parser)
-            elif page_parser:
-                return page_parser
-            break
-
-    # An invalid URL was given. Return None
-    if not youtube_video:
-        return None
-
-    return youtube_video
 
 

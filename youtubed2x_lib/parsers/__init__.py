@@ -6,6 +6,7 @@ class Parser_Helper (object):
     is_portal = False
     embed_file_extensions = {"video/flv": "flv"} # Most supported sites only distribute flv files
     parser_type = "Generic"
+    host_str = None
 
     def __init__ (self, video_id):
         self.video_id = video_id
