@@ -10,11 +10,10 @@ stuff = {
     "author": "Travis Nickles",
     "url": "http://ryochan7.webfactional.com/",
     "scripts": ["youtubed-2x", "youtubed-2x_gui"],
-    "packages": ["youtubed2x_lib"],
+    "packages": ["youtubed2x_lib", "youtubed2x_lib.parsers"],
 
     "data_files": [(os.path.join ("share", "youtubed-2x"), [os.path.join ("data", "youtubed-2x.glade")]),
                 (os.path.join ("share", "applications"), [os.path.join ("data", "youtubed2x.desktop")]),
-                (os.path.join ("share", "youtubed-2x", "service_images"), [os.path.join ("data", "service_images", file) for file in os.listdir (os.path.join ("data", "service_images"))])],
 
     "license": "GPL3",
 }

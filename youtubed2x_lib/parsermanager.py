@@ -55,11 +55,11 @@ class ParserManager (object):
             module_contents = dir (parser_module)
             parser = None
             for item in module_contents:
-                if item.endswith ("_Parser"):
+                if item.endswith ("_Parser") and item.lower () == "%s_parser" % possible_module:
                     parser = getattr (parser_module, item)
 
             if parser and issubclass (parser, Parser_Helper):
-#                print "CORRECT"
+                print parser
                 self.register (parser)
 
 #        print self.parsers
@@ -116,11 +116,11 @@ class ParserManager (object):
             module_contents = dir (parser_module)
             parser = None
             for item in module_contents:
-                if item.endswith ("_Parser"):
+                if item.endswith ("_Parser") and item.lower () == "%s_parser" % possible_module:
                     parser = getattr (parser_module, item)
 
             if parser and issubclass (parser, Parser_Helper):
-#                print "CORRECT"
+                print parser
                 self.register (parser)
 
         del sys.path[1]
@@ -136,7 +136,7 @@ class ParserManager (object):
         youtube_video = None
         spliturl = urlparse.urlsplit (full_url)
         hostname = spliturl.hostname
-#        print len (self.parsers.keys ())
+        print len (self.parsers.keys ())
 
         if not hostname:
             return None
