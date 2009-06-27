@@ -542,8 +542,10 @@ class VideoDownloadThread (Thread):
 
         match = VideoItem.resolution_re.search (process.stderr.read ())
         if match:
-            (vid_length, vid_width, vid_frame) = match.groups ()
-            (vid_length, vid_width, vid_frame) = (int (vid_length), int (vid_width), float (vid_frame))
+#            (vid_length, vid_width, vid_frame) = match.groups ()
+#            (vid_length, vid_width, vid_frame) = (int (vid_length), int (vid_width), float (vid_frame))
+            vid_length, vid_width = match.groups ()
+            vid_length, vid_width = int (vid_length), int (vid_width)
             command = self.video.buildCommandList (bitrate, vid_length, vid_width)
         else:
             command = self.video.buildCommandList (bitrate)
