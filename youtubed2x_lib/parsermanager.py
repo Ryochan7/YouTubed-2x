@@ -15,10 +15,12 @@ class ParserManager (object):
         if not issubclass (parser, Parser_Helper):
             raise TypeError ("A subclass of Parser_Helper was not passed")
 
-        identifier = parser.host_str
-        self.parsers.update ({identifier: parser})
-#        print self.parsers[identifier]
-#        print identifier
+        host_str = hasattr (parser, "host_str")
+        if host_str and isinstance (parser.host_str, str):
+            identifier = parser.host_str
+            self.parsers.update ({identifier: parser})
+#            print self.parsers[identifier]
+#            print identifier
 
 
     def _register_app_parsers (self):
@@ -41,8 +43,6 @@ class ParserManager (object):
             if not possible_module:
                 continue
 
-#            print "DUDE parsers.%s" % possible_module
-
             try:
                 exec ("import parsers.%s" % possible_module)
             except ImportError as exception:
@@ -62,8 +62,6 @@ class ParserManager (object):
                 print parser
                 self.register (parser)
 
-#        print self.parsers
-
 
     def _register_user_parsers (self):
         import os, sys
@@ -76,10 +74,16 @@ class ParserManager (object):
         user_parser_dir = os.path.join (config_dir, "parsers")
 
         if not os.path.exists (config_dir):
-            os.mkdir (config_dir)
+            try:
+                os.mkdir (config_dir)
+            except OSError:
+                print >> sys.stderr, "Could not create config directory \"%s\"" % config_dir
 
         if not os.path.exists (user_parser_dir):
-            os.mkdir (user_parser_dir)
+            try:
+                os.mkdir (user_parser_dir)
+            except OSError:
+                print >> sys.stderr, "Could not create unofficial parser directory \"%s\"." % user_parser_dir
 
         file_list = os.listdir (user_parser_dir)
         if "__init__.py" in file_list:
@@ -124,7 +128,6 @@ class ParserManager (object):
                 self.register (parser)
 
         del sys.path[1]
-#        print "HAM"
 
     
     def validateURL (self, full_url, video_item=True):
@@ -133,7 +136,6 @@ class ParserManager (object):
             raise TypeError ("Argument must be a string")
 
 #        print full_url
-        youtube_video = None
         spliturl = urlparse.urlsplit (full_url)
         hostname = spliturl.hostname
         print len (self.parsers.keys ())
@@ -142,7 +144,6 @@ class ParserManager (object):
             return None
         elif hostname.startswith ("www."):
             hostname = hostname.lstrip ("www.")
-#        hostname = hostname.split (".")[0]
 
 #        print hostname
         if hostname not in self.parsers:
@@ -151,11 +152,13 @@ class ParserManager (object):
 #        import time
 #        start_time = time.time ()
         page_parser = self.parsers[hostname].checkURL (full_url)
-        if page_parser:
-            if video_item:
-                youtube_video = VideoItem (page_parser)
-            elif page_parser:
-                youtube_video = page_parser
+        if page_parser and video_item:
+            youtube_video = VideoItem (page_parser)
+        elif page_parser:
+            youtube_video = page_parser
+        else:
+            youtube_video = None
+        
 #        end_time = time.time ()
 #        print "Time elapsed: %s" % (end_time - start_time)
 
