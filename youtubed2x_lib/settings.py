@@ -113,7 +113,12 @@ class Settings (object):
         self.overwrite = False
         self.keep_flv_files = True
         if WINDOWS:
-            self.output_dir = os.path.join (os.path.expanduser ("~"), "My Documents", "My Videos")
+            import ctypes
+            dll = ctypes.windll.shell32
+            buf = ctypes.create_string_buffer (300)
+            # 0x000E corresponds to CSIDL_MYVIDEO environment variable
+            dll.SHGetSpecialFolderPathA (None, buf, 0x000E, False)
+            self.output_dir = buf.value
         else:
             self.output_dir = os.path.join (os.path.expanduser ("~"), "Videos")
         self.ffmpeg_location = os.path.join (sys.prefix, "bin", "ffmpeg")
@@ -123,7 +128,14 @@ class Settings (object):
             os.mkdir (self.output_dir)
 
         if WINDOWS:
-            self.config_dir = os.path.join (os.path.expanduser ("~"), "Application Data", "youtubed-2x")
+            # Used with Windows Vista and Windows 7
+            if "LOCALAPPDATA" in os.environ:
+                self.config_dir = os.path.join (os.environ["LOCALAPPDATA"], "youtubed-2x")
+            # Useful for Windows XP and below
+            elif "APPDATA" in os.environ:
+                self.config_dir = os.path.join (os.environ["APPDATA"], "youtubed-2x")
+            else:
+                raise Exception ("LOCALAPPDATA nor APPDATA specified. Should not be here.")
         else:
             self.config_dir = os.path.join (os.path.expanduser ("~"), ".youtubed-2x")
         self.config_file_location = os.path.join (self.config_dir, "config.conf")

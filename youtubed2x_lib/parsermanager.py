@@ -67,7 +67,14 @@ class ParserManager (object):
         import os, sys
         home_dir = os.path.expanduser ("~")
         if WINDOWS:
-            config_dir = os.path.join (home_dir, "Application Data", "youtubed-2x")
+            # Useful for Windows Vista and Windows 7
+            if "LOCALAPPDATA" in os.environ:
+                config_dir = os.path.join (os.environ["LOCALAPPDATA"], "youtubed-2x")
+            # Useful for Windows XP and below
+            elif "APPDATA" in os.environ:
+                config_dir = os.path.join (os.environ["APPDATA"], "youtubed-2x")
+            else:
+                raise Exception ("LOCALAPPDATA nor APPDATA specified. Should not be here")
         else:
             config_dir = os.path.join (home_dir, ".youtubed-2x")
 
