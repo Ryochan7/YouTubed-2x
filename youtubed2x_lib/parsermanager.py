@@ -1,5 +1,4 @@
 from urllib2 import urlparse
-#from parsers import Parser_Helper
 import parsers
 from other import WINDOWS
 from videoitem import VideoItem
@@ -30,56 +29,30 @@ class ParserManager (object):
         # Importing modules from library.zip made with Py2exe
         if hasattr (parsers, "__loader__"):
             zipfiles = parsers.__loader__._files
-            print zipfiles
+#            print zipfiles
             file_list = [zipfiles[file][0] for file in zipfiles.keys () if "youtubed2x_lib\\parsers\\" in file]
             file_list = [name.split ("\\")[-1] for name in file_list]
             if "__init__.pyo" in file_list:
                 file_list.remove ("__init__.pyo")
-            print file_list
+#            print file_list
             module_list = map (lambda file_list: file_list[:-4], file_list)
         else:
             #file_list = os.listdir (os.path.dirname (__package__), "parsers")
             file_list = os.listdir (os.path.join (__package__, "parsers"))
             module_list = filter (lambda file_list: file_list.endswith (".py"), file_list)
             module_list = map (lambda module_list: module_list[:-3], module_list)
-            
-#        file_list = os.listdir (os.path.join (__package__, "parsers"))
-#        if "__init__.py" in file_list:
-#            file_list.remove ("__init__.py")
 
-#        print file_list
-#        for file in file_list:
-#            if file.endswith (".py"):
-#                possible_module = file.rstrip (".py")
-            # Useful for Py2exe build
-#            elif file.endswith (".pyo"):
-#                possible_module = file.rstrip (".pyo")
-#            else:
-#                possible_module = None
-
-#            if not possible_module:
-#                continue
-
-            # Check if bundled parser has already been imported
-#            if possible_module in self.parsers:
-#                continue
 
         for possible_module in module_list:
-            print possible_module
+#            print possible_module
             try:
-               parser_module =  __import__ ("youtubed2x_lib.parsers.%s" % possible_module, {}, {}, ["youtubed2x_lib.parsers"])
+               parser_module =  __import__ ("youtubed2x_lib.parsers.%s" % possible_module, {}, {}, ["parsers"])
             except ImportError as exception:
                 print >> sys.stderr, "File \"%s\" could not be imported" % possible_module
                 continue
-        
-#            try:
-#                exec ("import parsers.%s" % possible_module)
-#            except ImportError as exception:
-#                print >> sys.stderr, "File \"%s\" could not be imported" % possible_module
-#                continue
-
-#            parser_module = eval ("parsers.%s" % possible_module)
-#            print parser_module
+            except Exception as exception:
+                print >> sys.stderr, "%s" % exception
+                continue
 
             module_contents = dir (parser_module)
             site_parser = None
@@ -88,7 +61,7 @@ class ParserManager (object):
                     site_parser = getattr (parser_module, item)
 
             if site_parser and issubclass (site_parser, parsers.Parser_Helper):
-                print site_parser
+#                print site_parser
                 self.register (site_parser)
 
 
@@ -143,23 +116,22 @@ class ParserManager (object):
 
             try:
                 parser_module =  __import__ ("%s" % possible_module)
-#                exec ("import %s" % possible_module)
             except ImportError as exception:
                 print >> sys.stderr, "File \"%s\" could not be imported" % possible_module
                 continue
-
-#            parser_module = eval (possible_module)
-#            print parser_module
+            except Exception as exception:
+                print >> sys.stderr, "%s" % exception
+                continue
 
             module_contents = dir (parser_module)
-            parser = None
+            site_parser = None
             for item in module_contents:
                 if item.endswith ("_Parser") and item.lower () == "%s_parser" % possible_module:
-                    parser = getattr (parser_module, item)
+                    site_parser = getattr (parser_module, item)
 
-            if parser and issubclass (parser, parsers.Parser_Helper):
-                print parser
-                self.register (parser)
+            if site_parser and issubclass (site_parser, parsers.Parser_Helper):
+                print site_parser
+                self.register (site_parser)
 
         del sys.path[1]
 
