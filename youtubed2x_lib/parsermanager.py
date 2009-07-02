@@ -19,8 +19,6 @@ class ParserManager (object):
         if host_str and isinstance (parser.host_str, str):
             identifier = parser.host_str
             self.parsers.update ({identifier: parser})
-#            print self.parsers[identifier]
-#            print identifier
 
 
     def _register_app_parsers (self):
@@ -29,22 +27,17 @@ class ParserManager (object):
         # Importing modules from library.zip made with Py2exe
         if hasattr (parsers, "__loader__"):
             zipfiles = parsers.__loader__._files
-#            print zipfiles
             file_list = [zipfiles[file][0] for file in zipfiles.keys () if "youtubed2x_lib\\parsers\\" in file]
             file_list = [name.split ("\\")[-1] for name in file_list]
             if "__init__.pyo" in file_list:
                 file_list.remove ("__init__.pyo")
-#            print file_list
             module_list = map (lambda file_list: file_list[:-4], file_list)
         else:
-            #file_list = os.listdir (os.path.dirname (__package__), "parsers")
             file_list = os.listdir (os.path.join (__package__, "parsers"))
             module_list = filter (lambda file_list: file_list.endswith (".py"), file_list)
             module_list = map (lambda module_list: module_list[:-3], module_list)
 
-
         for possible_module in module_list:
-#            print possible_module
             try:
                parser_module =  __import__ ("youtubed2x_lib.parsers.%s" % possible_module, {}, {}, ["parsers"])
             except ImportError as exception:
@@ -61,7 +54,7 @@ class ParserManager (object):
                     site_parser = getattr (parser_module, item)
 
             if site_parser and issubclass (site_parser, parsers.Parser_Helper):
-#                print site_parser
+                print site_parser
                 self.register (site_parser)
 
 
@@ -98,18 +91,15 @@ class ParserManager (object):
         if "__init__.py" in file_list:
             file_list.remove ("__init__.py")
 
+        # Add user directory to sys.path so
+        # modules can be imported
         sys.path.insert (1, user_parser_dir)
-
-#        print sys.path
-#        print file_list
 
         for file in file_list:
             if file.endswith (".py"):
                 possible_module = file.rstrip (".py")
             else:
                 possible_module = None
-
-#            print possible_module
 
             if not possible_module:
                 continue
@@ -133,6 +123,8 @@ class ParserManager (object):
                 print site_parser
                 self.register (site_parser)
 
+        # Custom parsers loaded. Remove user_parser_dir
+        # directory from sys.path
         del sys.path[1]
 
     
@@ -141,7 +133,6 @@ class ParserManager (object):
         if not isinstance (full_url, str):
             raise TypeError ("Argument must be a string")
 
-#        print full_url
         spliturl = urlparse.urlsplit (full_url)
         hostname = spliturl.hostname
         print len (self.parsers.keys ())
@@ -151,12 +142,9 @@ class ParserManager (object):
         elif hostname.startswith ("www."):
             hostname = hostname.lstrip ("www.")
 
-#        print hostname
         if hostname not in self.parsers:
             return None
 
-#        import time
-#        start_time = time.time ()
         page_parser = self.parsers[hostname].checkURL (full_url)
         if page_parser and video_item:
             youtube_video = VideoItem (page_parser)
@@ -164,9 +152,6 @@ class ParserManager (object):
             youtube_video = page_parser
         else:
             youtube_video = None
-        
-#        end_time = time.time ()
-#        print "Time elapsed: %s" % (end_time - start_time)
 
         return youtube_video
 

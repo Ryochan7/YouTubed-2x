@@ -611,6 +611,9 @@ class VideoDownloadThread (Thread):
         except downloader.FileExistException as exception:
             print "File already exists. Skipping Download"
             return True
+        except Exception as exception:
+            print >> sys.stderr, "%s" % exception
+            return False
 
         self._downloader = n00b
 
