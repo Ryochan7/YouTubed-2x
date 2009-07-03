@@ -389,6 +389,7 @@ class VideoDownloadThread (Thread):
         else:
             self.video.setFilePaths (app_settings.output_dir)
 
+        transcode = app_settings.transcode
         auto_download = app_settings.auto_download
         if auto_download:
             self._has_sem = video_queue.acquire_sem ()
@@ -400,7 +401,6 @@ class VideoDownloadThread (Thread):
         gtk.gdk.threads_leave ()
 
         while self.status != self.__class__.READY and self.status != self.__class__.CANCELLED and not self._has_sem:
-            #print "KHAN"
             time.sleep (self.__class__.SLEEP_HOLD)
             if auto_download:
                 self._has_sem = video_queue.acquire_sem ()
@@ -443,7 +443,7 @@ class VideoDownloadThread (Thread):
             video_queue.release_sem ()
             return
 
-        if not app_settings.transcode:
+        if not transcode:
             self._finish_thread ()
             video_queue.release_sem ()
             return

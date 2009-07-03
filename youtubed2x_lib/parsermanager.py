@@ -87,6 +87,10 @@ class ParserManager (object):
             except OSError:
                 print >> sys.stderr, "Could not create unofficial parser directory \"%s\"." % user_parser_dir
 
+        if not os.path.exists (user_parser_dir):
+            print "User parser directory \"%s\" does not exist." % user_parser_dir
+            return
+
         file_list = os.listdir (user_parser_dir)
         if "__init__.py" in file_list:
             file_list.remove ("__init__.py")
