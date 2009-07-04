@@ -3,16 +3,14 @@ from youtubed2x_lib.parsers import Parser_Helper, getPage, PageNotFound
 
 
 class YouTube_Parser (Parser_Helper):
-    """Parser for YouTube pages. Updated 03/21/2009"""
+    """Parser for YouTube pages. Updated 07/04/2009"""
     # URLs and RegExp statements from youtube-dl (some slightly modified)
     const_video_url_re = re.compile (r'^(?:http://)?(?:\w+\.)?youtube\.com/(?:v/|(?:watch(?:\.php)?)?\?(?:.+&)?v=)?([0-9A-Za-z_-]+)(?(1)[&/].*)?$')
     video_url_str = 'http://www.youtube.com/watch?v=%s'
     video_url_real_str = 'http://www.youtube.com/get_video?video_id=%s&t=%s'
-#    video_url_real_high_str = 'http://www.youtube.com/get_video?video_id=%s&t=%s&fmt=6' # Format seems to no longer exist
     video_url_real_high_str = 'http://www.youtube.com/get_video?video_id=%s&t=%s&fmt=18'
     video_title_re = re.compile (r'<title>YouTube - ([^<]*)</title>')
     video_url_params_re = re.compile (r', "t": "([^"]+)"')
-#    video_high_quality_re = re.compile (r'onclick\="changeVideoQuality\(yt\.VideoQualityConstants\.HIGH\); urchinTracker\(\'/Events/VideoWatch/QualityChangeToHigh\'\); return false;">watch in high quality</a>')
     login_required_re = re.compile (r"^http://www.youtube.com/verify_age\?next_url=/watch")
     login_page = "http://www.youtube.com/signup"
     embed_file_extensions = {"video/flv": "flv", "video/mp4": "mp4"}

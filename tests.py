@@ -18,6 +18,10 @@ testURLs = ("http://www.youtube.com/watch?v=EjI4e3QEoPQ",
 "http://www.dailymotion.com/relevance/search/kanon%2B2006/video/x2myny_amv-kanon_school",
 "http://www.giantbomb.com/news/ogle-the-final-fantasy-xiii-trailer-repeatedly/872/",
 "http://www.porn2pc.com/9035", # Example points to RedTube-style URL
+"http://www.screwattack.com/AVGN/JaguarPart1",
+"http://www.gametrailers.com/video/angry-video-screwattack/37368",
+"http://www.escapistmagazine.com/videos/view/zero-punctuation/789-Prototype",
+"http://video.yahoo.com/watch/125292/",
 )
 
 

@@ -5,11 +5,7 @@ from other import WINDOWS
 
 
 class VideoItem (object):
-#    command_dict = {'application': 'ffmpeg', 'vcodec': 'xvid', 'vres': '320x240', 'bitrate': '%ik', 'acodec': 'copy', 'output_file': '%s'}
     command_dict = {'application': 'ffmpeg', 'vcodec': 'libxvid', 'vres': '320x240', 'bitrate': '%ik', 'acodec': 'copy', 'output_file': '%s', 'abitrate': '%ik'}
-    # TODO: Tweak this regular expression. Output from ffmpeg
-    # different for mp4 videos compared to flv videos
-#    resolution_re = re.compile (r"[ ]+Stream \#\d{1}.\d{1}(?:\(und\))?: Video: \w+, \w+, (\d+)x(\d+)(?: \[[\S ]+\])?, (\d+.\d+).*")
     resolution_re = re.compile (r"[ ]+Stream \#\d{1}\.\d{1}(?:\(und\))?: Video: \w+, \w+, (\d+)x(\d+).*")
 
     MAX_MP3_BITRATE = 384
@@ -165,7 +161,7 @@ in a FAT32 filesystem. Incomplete"""
             if self.output_res == self.__class__.RES_640:
                 output_length = 640
                 output_width = 480
-                temp_commands.update ({"vres": "640x480"})
+                temp_commands.update ({"vres": "%ix%i" % (output_length, output_width)})
             else:
                 output_length = 320
                 output_width = 240
@@ -304,8 +300,6 @@ in a FAT32 filesystem. Incomplete"""
                 match = self.__class__.resolution_re.search (process.stderr.read ())
 
                 if match:
-#                    (vid_length, vid_width, vid_frame) = match.groups ()
-#                    (vid_length, vid_width, vid_frame) = (int (vid_length), int (vid_width), float (vid_frame))
                     vid_length, vid_width = match.groups ()
                     vid_length, vid_width = int (vid_length), int (vid_width)
                     command = self.buildCommandList (bitrate, vid_length, vid_width)
