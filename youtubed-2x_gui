@@ -184,7 +184,7 @@ class VideoItemMenu (object):
             if WINDOWS:
                 subprocess.Popen (["start", "", video_file], shell=True)
             else:
-                subprocess.Popen (["xdg-open", "", video_file])
+                subprocess.Popen (["xdg-open", video_file])
 
 
     def get_children (self):
