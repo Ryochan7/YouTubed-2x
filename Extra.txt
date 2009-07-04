@@ -40,12 +40,11 @@ authorization.
 
 ==============================================================================
 
-03-13-2008
+07-04-2009
 
-The Windows version of this program bundles executables for ffmpeg and wget. These
-two programs are licensed under the GPL. This program uses the compiled executables
-from the projects so no modification has been made to either program. As such,
-I will point out where to get the binary and the source code for both programs.
+The Windows version of this program bundles an executable for ffmpeg. The program is licensed under the GPL. This program uses the compiled executable
+from that project so no modification has been made. As such,
+I will point out where to get the binary and the source code for ffmpeg.
 I think that this is all that needs to be done to comply with the GPL in this case
 but feel free to contact me and let me know if there is more that I have to do.
 
@@ -55,10 +54,6 @@ FFmpeg info:
 Binary: http://ffmpeg.arrozcru.org/builds/static/ffmpeg-r13712-gpl-static-win32.tar.bz2
 Source: http://ffmpeg.arrozcru.org/builds/source/ffmpeg-r13712.tar.bz2
 
-Wget Info:
-
-Binary: http://users.ugent.be/~bpuype/wget/wget.exe
-Source (uses un-modified GNU code): http://ftp.gnu.org/gnu/wget/wget-1.11.4.tar.gz
 
 The Windows version of this program also bundles portions of GTK that are needed to render
 the GUI version.

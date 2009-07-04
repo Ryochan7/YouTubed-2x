@@ -182,10 +182,9 @@ class VideoItemMenu (object):
 
         if video_file:
             if WINDOWS:
-                program = "open"
+                subprocess.Popen (["start", "", video_file], shell=True)
             else:
-                program = "xdg-open"
-            subprocess.Popen ([program, video_file])
+                subprocess.Popen (["xdg-open", "", video_file])
 
 
     def get_children (self):
@@ -770,9 +769,6 @@ class YouTubeDownloader (object):
 
 
     def startProcess (self, widget):
-        app_settings.output_dir = self.folder_chooser.get_filename ()
-        app_settings.output_res = self.resolution_combobox.get_active ()
-
         tree = self.treeview1.get_selection ()
         model, selection = tree.get_selected ()
 
@@ -962,7 +958,6 @@ class YouTubeDownloader (object):
             self.show_caution_window ()
             return True
 
-        app_settings.output_dir = self.folder_chooser.get_filename ()
         gtk.main_quit ()
 
 
@@ -1213,7 +1208,8 @@ class YouTubeDownloader (object):
                'on_toolbutton5_clicked': self.move_down, 'on_aboutdialog1_delete_event': self.keep_about_window, 'on_combobox1_changed': self.change_default_bitrate,
 'on_sites_activate': self.show_sites_window, 'on_close_sites_clicked': self.hide_sites_window, 'on_sites_dialog_delete_event': self.keep_sites_window,
 'on_sites_dialog_response': self.hide_sites_window, 'on_combobox2_changed': self.change_bitrate, "on_resolution_combobox_changed": self.resolution_change,
-        "on_auto_download_check_toggled": self.change_auto_download}
+        "on_auto_download_check_toggled": self.change_auto_download, "on_openfolderbutton_clicked": self.open_video_folder,
+"on_filechooserbutton1_current_folder_changed": self.change_video_folder}
         self.window.signal_autoconnect (dic)
 
 
@@ -1248,9 +1244,22 @@ class YouTubeDownloader (object):
         return
 
 
+    def open_video_folder (self, widget):
+        folder = self.folder_chooser.get_filename ()
+        if WINDOWS:
+            subprocess.Popen (["start", "", folder], shell=True)
+        else:
+            subprocess.Popen (["xdg-open", folder])
+
+
+    def change_video_folder (self, widget):
+        app_settings.output_dir = self.folder_chooser.get_filename ()
+
+
+
 if __name__ == '__main__':
     # If running on Windows, write output and error messages to text files.
-    # Needed due to py2exe
+    # Needed due to Py2exe
     if WINDOWS:
         sys.stdout = open ("log.txt", "w")
         sys.stderr = open ("errors.log", "w")

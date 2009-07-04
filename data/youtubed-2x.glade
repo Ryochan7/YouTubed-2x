@@ -266,7 +266,9 @@
                     <property name="spacing">11</property>
                     <child>
                       <widget class="GtkLabel" id="label6">
+                        <property name="width_request">100</property>
                         <property name="visible">True</property>
+                        <property name="xalign">0.30000001192092896</property>
                         <property name="label" translatable="yes">Output Folder:</property>
                       </widget>
                       <packing>
@@ -281,10 +283,33 @@
                         <property name="visible">True</property>
                         <property name="action">select-folder</property>
                         <property name="title" translatable="yes">Select An Output Directory</property>
+                        <signal name="current_folder_changed" handler="on_filechooserbutton1_current_folder_changed"/>
                       </widget>
                       <packing>
-                        <property name="padding">5</property>
+                        <property name="padding">2</property>
                         <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="GtkButton" id="openfolderbutton">
+                        <property name="width_request">40</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">True</property>
+                        <property name="tooltip" translatable="yes">Open output folder</property>
+                        <signal name="clicked" handler="on_openfolderbutton_clicked"/>
+                        <child>
+                          <widget class="GtkImage" id="image1">
+                            <property name="visible">True</property>
+                            <property name="stock">gtk-open</property>
+                          </widget>
+                        </child>
+                      </widget>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                        <property name="padding">10</property>
+                        <property name="position">2</property>
                       </packing>
                     </child>
                   </widget>
@@ -1293,32 +1318,10 @@ Ricardo Garcia Gonzalez - Author of youtube-dl and pornotube-dl</property>
             <property name="hscrollbar_policy">automatic</property>
             <property name="vscrollbar_policy">automatic</property>
             <child>
-              <widget class="GtkTextView" id="textview1">
+              <widget class="GtkTextView" id="sites_textview">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="editable">False</property>
-                <property name="text" translatable="yes">Supported Sites
--------------------------
-
-* YouTube
-* Dailymotion
-* GiantBomb
-* Google Video
-* Guba
-* Metacafe
-* MySpaceTv
-* MyVideo
-* Veoh (with portal download support)
-* GirlsInTube
-* PornHub
-* PornoTube
-* Redtube
-* PacoPorn
-* Porn2PC
-* Tube8
-* YouPorn
-
-List Updated: 06/17/2009</property>
               </widget>
             </child>
           </widget>
@@ -1654,17 +1657,43 @@ List Updated: 06/17/2009</property>
   <widget class="GtkMenu" id="treeview_menu1">
     <property name="visible">True</property>
     <child>
-      <widget class="GtkImageMenuItem" id="copyurl_menuitem">
-        <property name="label" translatable="yes">Copy URL</property>
+      <widget class="GtkImageMenuItem" id="playvideo_menuitem">
+        <property name="label" translatable="yes">Play Video</property>
         <property name="visible">True</property>
         <property name="use_stock">False</property>
-        <signal name="activate" handler="on_copyurl_menuitem_activate"/>
+        <signal name="activate" handler="on_playvideo_menuitem_activate"/>
         <child internal-child="image">
-          <widget class="GtkImage" id="image1">
+          <widget class="GtkImage" id="image2">
+            <property name="visible">True</property>
+            <property name="stock">gtk-media-play</property>
+          </widget>
+        </child>
+      </widget>
+    </child>
+    <child>
+      <widget class="GtkSeparatorMenuItem" id="seperator_menuitem">
+        <property name="visible">True</property>
+      </widget>
+    </child>
+    <child>
+      <widget class="GtkImageMenuItem" id="copyvidurl_menuitem">
+        <property name="label" translatable="yes">Copy Video URL</property>
+        <property name="visible">True</property>
+        <property name="use_stock">False</property>
+        <signal name="activate" handler="on_copyvidurl_menuitem_activate"/>
+        <child internal-child="image">
+          <widget class="GtkImage" id="image3">
             <property name="visible">True</property>
             <property name="stock">gtk-copy</property>
           </widget>
         </child>
+      </widget>
+    </child>
+    <child>
+      <widget class="GtkMenuItem" id="copypageurl_menuitem">
+        <property name="visible">True</property>
+        <property name="label" translatable="yes">Copy Page URL</property>
+        <signal name="activate" handler="on_copypageurl_menuitem_activate"/>
       </widget>
     </child>
   </widget>
