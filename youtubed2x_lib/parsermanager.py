@@ -7,6 +7,8 @@ from videoitem import VideoItem
 class ParserManager (object):
     def __init__ (self):
         self.parsers = {}
+        self._app_parsers_list = []
+        self._user_parsers_list = []
         self._register_app_parsers ()
         self._register_user_parsers ()
 
@@ -56,6 +58,7 @@ class ParserManager (object):
             if site_parser and issubclass (site_parser, parsers.Parser_Helper):
                 print site_parser
                 self.register (site_parser)
+                self._app_parsers_list.append (site_parser)
 
 
     def _register_user_parsers (self):
@@ -126,6 +129,7 @@ class ParserManager (object):
             if site_parser and issubclass (site_parser, parsers.Parser_Helper):
                 print site_parser
                 self.register (site_parser)
+                self._user_parsers_list.append (site_parser)
 
         # Custom parsers loaded. Remove user_parser_dir
         # directory from sys.path
@@ -158,6 +162,11 @@ class ParserManager (object):
             youtube_video = None
 
         return youtube_video
+
+
+    def get_official_parsers (self):
+        parser_list = list (self._app_parsers_list)
+        return parser_list
 
 
 parser_manager = ParserManager ()
