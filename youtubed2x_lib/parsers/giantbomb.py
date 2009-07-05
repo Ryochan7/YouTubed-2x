@@ -1,4 +1,5 @@
 import re
+import datetime
 from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
@@ -12,6 +13,7 @@ class GiantBomb_Parser (Parser_Helper):
     video_url_params_re = re.compile (r'<URI bitRate="700">(\S+)</URI>')
     parser_type = "GiantBomb"
     host_str = "giantbomb.com"
+    version = datetime.date (2009, 2, 2)
 
 
     def getVideoPage (self, account="", password=""):

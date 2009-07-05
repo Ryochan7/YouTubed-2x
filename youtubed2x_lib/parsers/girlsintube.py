@@ -1,4 +1,5 @@
 import re
+import datetime
 from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
@@ -11,6 +12,7 @@ class GirlsInTube_Parser (Parser_Helper):
     video_url_params_re = re.compile (r"{ 'clip': {'url': '(\S+)', ")
     parser_type = "GirlsInTube"
     host_str = "girlsintube.com"
+    version = datetime.date (2009, 2, 22)
 
 
     def getVideoPage (self, account="", password=""):

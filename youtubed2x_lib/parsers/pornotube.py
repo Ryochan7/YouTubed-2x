@@ -1,4 +1,5 @@
 import re
+import datetime
 from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
@@ -18,6 +19,7 @@ class PornoTube_Parser (Parser_Helper):
     video_url_mdomain_re = re.compile (r'&mediaDomain=([^&]+)&')
     parser_type = "PornoTube"
     host_str = "pornotube.com"
+    version = datetime.date (2009, 6, 25)
 
 
     def getVideoPage (self):

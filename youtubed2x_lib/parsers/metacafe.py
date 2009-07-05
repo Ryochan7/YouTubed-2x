@@ -1,4 +1,5 @@
 import re
+import datetime
 from youtubed2x_lib.parsers import Parser_Helper
 
 
@@ -10,6 +11,7 @@ class Metacafe_Parser (Parser_Helper):
     video_url_params_re = re.compile (r"mediaURL=(\S+)&gdaKey=(\w+)&postRollContentURL=")
     parser_type = "Metacafe"
     host_str = "metacafe.com"
+    version = datetime.date (2009, 1, 7)
 
 
     def _parseRealURL (self, commands):

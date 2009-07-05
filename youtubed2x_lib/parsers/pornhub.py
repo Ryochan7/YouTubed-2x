@@ -1,4 +1,5 @@
 import re
+import datetime
 from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
@@ -12,6 +13,7 @@ class Pornhub_Parser (Parser_Helper):
     video_key_re = re.compile (r"<flv_url>(\S+)</flv_url>")
     parser_type = "Pornhub"
     host_str = "pornhub.com"
+    version = datetime.date (2009, 1, 7)
 
 
     def _parseRealURL (self, commands):

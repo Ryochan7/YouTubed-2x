@@ -1,4 +1,5 @@
 import re
+import datetime
 from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
@@ -12,6 +13,7 @@ class PacoPorn_Parser (Parser_Helper):
     video_url_params_re = re.compile (r'PLAYER_SETTINGS Name=\"FLVPath\" Value=\"(\S+)\"')
     parser_type = "PacoPorn"
     host_str = "pacoporn.com"
+    version = datetime.date (2009, 6, 3)
 
 
     def getVideoPage (self, account="", password=""):

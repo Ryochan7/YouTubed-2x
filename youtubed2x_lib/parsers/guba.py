@@ -1,4 +1,5 @@
 import re
+import datetime
 from youtubed2x_lib.parsers import Parser_Helper
 
 class Guba_Parser (Parser_Helper):
@@ -9,6 +10,7 @@ class Guba_Parser (Parser_Helper):
     video_url_params_re = re.compile (r'"(\S+)" \);\r\n(?:[ ]{32})bfp.writeBlogFlashPlayer\(\);')
     parser_type = "Guba"
     host_str = "guba.com"
+    version = datetime.date (2009, 6, 17)
 
 
     def _parseRealURL (self, commands):

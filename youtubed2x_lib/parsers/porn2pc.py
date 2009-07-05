@@ -1,4 +1,5 @@
 import re
+import datetime
 from youtubed2x_lib.parsers import Parser_Helper
 from pornotube import PornoTube_Parser
 from redtube import RedTube_Parser
@@ -12,6 +13,7 @@ class Porn2Pc_Parser (Parser_Helper):
     video_url_str = 'http://www.porn2pc.com/%s'
     parser_type = "Porn2Pc"
     host_str = "porn2pc.com"
+    version = datetime.date (2009, 6, 3)
 
 
     @classmethod

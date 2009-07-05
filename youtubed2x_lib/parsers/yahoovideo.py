@@ -1,5 +1,6 @@
 import re
 from urllib2 import unquote
+import datetime
 from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
@@ -13,6 +14,7 @@ class YahooVideo_Parser (Parser_Helper):
     video_url_params_re = re.compile (r'<STREAM APP="(\S+)" FULLPATH="(\S+)" CLIPID')
     parser_type = "Yahoo Video"
     host_str = "video.yahoo.com"
+    version = datetime.date (2009, 6, 27)
 
 
     def _parsePlayerCommands (self, page_dump):

@@ -1,4 +1,5 @@
 import re
+import datetime
 from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
@@ -14,6 +15,7 @@ class Veoh_Parser (Parser_Helper):
     is_portal = True
     parser_type = "Veoh"
     host_str = "veoh.com"
+    version = datetime.date (2009, 6, 7)
 
 
     def __init__ (self, video_id):

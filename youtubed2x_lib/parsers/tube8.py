@@ -1,4 +1,5 @@
 import re
+import datetime
 from youtubed2x_lib.parsers import Parser_Helper
 
 
@@ -10,6 +11,7 @@ class Tube8_Parser (Parser_Helper):
     video_url_params_re = re.compile (r'param name="FlashVars" value="videoUrl=(\S+)&imageUrl=')
     parser_type = "Tube8"
     host_str = "tube8.com"
+    version = datetime.date (2009, 7, 26)
 
 
     def _parseRealURL (self, commands):

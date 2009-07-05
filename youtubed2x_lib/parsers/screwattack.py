@@ -1,4 +1,5 @@
 import re
+import datetime
 from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
@@ -12,6 +13,8 @@ class ScrewAttack_Parser (Parser_Helper):
     embed_file_extensions = {"video/mp4": "mp4"}
     parser_type = "ScrewAttack"
     host_str = "screwattack.com"
+    version = datetime.date (2009, 6, 26)
+
 
     def __init__ (self, video_id):
         super (ScrewAttack_Parser, self).__init__ (video_id)

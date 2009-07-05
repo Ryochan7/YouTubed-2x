@@ -1,4 +1,5 @@
 import re
+import datetime
 from youtubed2x_lib.parsers import Parser_Helper
 
 
@@ -11,6 +12,8 @@ class GameTrailers_Parser (Parser_Helper):
     embed_file_extensions = {"video/quicktime": "mov"}
     parser_type = "GameTrailers"
     host_str = "gametrailers.com"
+    version = datetime.date (2009, 6, 26)
+
 
     def __init__ (self, video_id):
         super (GameTrailers_Parser, self).__init__ (video_id)

@@ -1187,11 +1187,14 @@ class YouTubeDownloader (object):
         sites_str = "Supported Sites\n-----------------------\n\n"
         parser_list = parser_manager.get_official_parsers ()
         name_list = []
+        tmp_dic = {}
         for parser in parser_list:
             name_list.append (parser.getType ())
+            tmp_dic[parser.getType ()] = parser
         name_list.sort ()
         for name in name_list:
-            sites_str += "* %s\n" % name
+            parser_version = tmp_dic[name].version
+            sites_str += "* %s    (%s/%s/%s)\n" % (name, parser_version.month, parser_version.day, parser_version.year)
         sites_textview.get_buffer ().set_text (sites_str)
         
 #        self.update_statusbar ("HAMTARO")

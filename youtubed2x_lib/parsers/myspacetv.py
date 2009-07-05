@@ -1,4 +1,5 @@
 import re
+import datetime
 from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
@@ -11,6 +12,7 @@ class MySpaceTV_Parser (Parser_Helper):
     video_url_params_re = re.compile (r'<media:content url="(\S+)" type="video/x-flv"')
     parser_type = "MySpaceTV"
     host_str = "vids.myspace.com"
+    version = datetime.date (2009, 6, 16)
 
 
     def getVideoPage (self, account="", password=""):

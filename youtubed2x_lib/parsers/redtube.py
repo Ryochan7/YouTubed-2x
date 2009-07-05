@@ -1,4 +1,5 @@
 import re
+import datetime
 from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
@@ -13,6 +14,7 @@ class RedTube_Parser (Parser_Helper):
     video_map_table = ['R', '1', '5', '3', '4', '2', 'O', '7', 'K', '9', 'H', 'B', 'C', 'D', 'X', 'F', 'G', 'A', 'I', 'J', '8', 'L', 'M', 'Z', '6', 'P', 'Q', '0', 'S', 'T', 'U', 'V', 'W', 'E', 'Y', 'N']
     parser_type = "RedTube"
     host_str = "redtube.com"
+    version = datetime.date (2009, 6, 14)
 
 
     # TODO: Fix to use dynamic expires date

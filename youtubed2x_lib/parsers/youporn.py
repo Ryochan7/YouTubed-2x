@@ -1,4 +1,5 @@
 import re
+import datetime
 from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
@@ -11,6 +12,8 @@ class YouPorn_Parser (Parser_Helper):
     video_url_params_re = re.compile (r'<a href="http://download.youporn.com/download/(\d+)/\?(\S+)">FLV - Flash Video format</a>')
     parser_type = "YouPorn"
     host_str = "youporn.com"
+    version = datetime.date (2009, 1, 7)
+
 
     def __init__ (self, video_id):
         super (YouPorn_Parser, self).__init__ (video_id)

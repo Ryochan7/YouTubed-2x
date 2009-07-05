@@ -1,4 +1,5 @@
 import re
+import datetime
 from youtubed2x_lib.parsers import Parser_Helper, getPage, PageNotFound
 
 
@@ -16,6 +17,8 @@ class YouTube_Parser (Parser_Helper):
     embed_file_extensions = {"video/flv": "flv", "video/mp4": "mp4"}
     parser_type = "YouTube"
     host_str = "youtube.com"
+    version = datetime.date (2009, 7, 4)
+
 
     def __init__ (self, video_id):
         super (YouTube_Parser, self).__init__ (video_id)

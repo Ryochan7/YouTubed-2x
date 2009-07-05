@@ -1,6 +1,7 @@
 import re
 import hashlib
 from urllib2 import unquote
+import datetime
 from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
@@ -15,6 +16,7 @@ class Escapist_Parser (Parser_Helper):
     post_vars = {"version": "ThemisMedia1.2", "format": ""}
     parser_type = "The Escapist"
     host_str = "escapistmagazine.com"
+    version = datetime.date (2009, 6, 26)
 
 
     def _parseRealURL (self, commands):

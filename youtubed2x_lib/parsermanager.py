@@ -1,4 +1,5 @@
 from urllib2 import urlparse
+import datetime
 import parsers
 from other import WINDOWS
 from videoitem import VideoItem
@@ -11,16 +12,22 @@ class ParserManager (object):
         self._user_parsers_list = []
         self._register_app_parsers ()
         self._register_user_parsers ()
+        print self.parsers
 
 
     def register (self, parser):
         if not issubclass (parser, parsers.Parser_Helper):
             raise TypeError ("A subclass of Parser_Helper was not passed")
 
-        host_str = hasattr (parser, "host_str")
-        if host_str and isinstance (parser.host_str, str):
-            identifier = parser.host_str
-            self.parsers.update ({identifier: parser})
+        host_str = getattr (parser, "host_str", "")
+        version = getattr (parser, "version", "")
+        if host_str and isinstance (host_str, str) and isinstance (version, datetime.date):
+            identifier = host_str
+            if identifier in self.parsers and self.parsers[identifier].version >= parser.version:
+                # Override parser with newer version
+                self.parsers.update ({identifier: parser})
+            else:
+                self.parsers.update ({identifier: parser})
 
 
     def _register_app_parsers (self):

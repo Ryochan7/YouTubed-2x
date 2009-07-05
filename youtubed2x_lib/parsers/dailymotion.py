@@ -1,4 +1,5 @@
 import re
+import datetime
 from youtubed2x_lib.parsers import Parser_Helper
 
 
@@ -11,6 +12,7 @@ class Dailymotion_Parser (Parser_Helper):
     video_url_real_str = "http://www.dailymotion.com%s"
     parser_type = "Dailymotion"
     host_str = "dailymotion.com"
+    version = datetime.date (2009, 4, 19)
 
 
     def _parseRealURL (self, commands):

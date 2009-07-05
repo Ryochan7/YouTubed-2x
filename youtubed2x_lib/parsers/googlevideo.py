@@ -1,4 +1,5 @@
 import re
+import datetime
 from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
@@ -12,6 +13,8 @@ class GoogleVideo_Parser (Parser_Helper):
     embed_file_extensions = {"video/mp4": "mp4"}
     parser_type = "GoogleVideo"
     host_str = "video.google.com"
+    version = datetime.date (2009, 5, 28)
+
 
     def __init__ (self, video_id):
         super (GoogleVideo_Parser, self).__init__ (video_id)
