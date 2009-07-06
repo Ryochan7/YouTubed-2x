@@ -108,7 +108,7 @@ class FileDownloader (object):
 
 
     def humanizeTime (self, speed):
-        if speed < 0:
+        if speed <= 0:
             raise Exception ("Speed must be greater than zero")
         file_size = self.getFileSize ()
         if file_size < 0:
@@ -116,7 +116,11 @@ class FileDownloader (object):
 
         time_in_seconds = (file_size - self.getBytesDownloaded ()) / speed
         (remain_hour, tmp_min) = divmod (time_in_seconds, self.__class__.SECONDS_PER_HOUR)
-        (remain_min, remain_sec) = divmod (tmp_min, self.__class__.SECONDS_PER_MINUTE)
+        if remain_hour > 99:
+            remain_hour = 99
+            remain_min = remain_sec = 59
+        else:
+            (remain_min, remain_sec) = divmod (tmp_min, self.__class__.SECONDS_PER_MINUTE)
         remain_string = "%02d h %02d m %02d s" % (remain_hour, remain_min, remain_sec)
         return remain_string
 

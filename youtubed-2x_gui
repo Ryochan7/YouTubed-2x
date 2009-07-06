@@ -428,7 +428,7 @@ class VideoDownloadThread (Thread):
             return
 
         self.status = self.__class__.WAITING
-        video_queue.update_status (self.download_id, title=self.video.title, progress=0, status="Queued", force_update=True)
+        video_queue.update_status (self.download_id, title=self.video.title, url=self.video.parser.page_url, progress=0, status="Queued", force_update=True)
 
         auto_download = app_settings.auto_download
         if auto_download:
@@ -553,7 +553,7 @@ class VideoDownloadThread (Thread):
         if done:
             self.status = self.__class__.DONE
 
-        video_queue.update_status (self.download_id, progress=100, status=print_status, force_update=True)
+        video_queue.update_status (self.download_id, progress=100, status=print_status, speed="", size="", eta="", force_update=True)
 
         gtk.gdk.threads_enter ()
         video_queue.send ("block-ui")
@@ -630,6 +630,7 @@ class VideoDownloadThread (Thread):
         except OSError:
             return False
 
+        start_update = time.time ()
         (stdout, stderr) = (process.stdout, process.stderr)
         self.process_id = process.pid
 #       print process.poll ()
@@ -656,15 +657,29 @@ class VideoDownloadThread (Thread):
                     percentage = int (percentage*100/duration)
                     if percentage > 100:
                         percentage = 100
-                    video_queue.update_status (self.download_id, progress=percentage)
+
+                    transcode_time = float (match.group (1))
+                    transcode_time = transcode_time + (float (match.group (2)) * .01)
+                    ffmpeg_eta = (transcode_time) / float (time.time ()-start_update)
+                    ffmpeg_eta = (duration - transcode_time) / float (ffmpeg_eta)
+
+                    (remain_hour, tmp_min) = divmod (ffmpeg_eta, 60**2)
+                    if remain_hour > 99:
+                        remain_hour = 99
+                        remain_min = remain_sec = 59
+                    else:
+                        (remain_min, remain_sec) = divmod (tmp_min, 60)
+                    remain_string = "%02d h %02d m %02d s" % (remain_hour, remain_min, remain_sec)
+
+                    video_queue.update_status (self.download_id, progress=percentage, eta=remain_string)
 
 #       print process.poll ()
         self.process_id = None
 
         if process.poll () == 0 and not WINDOWS:
-            video_queue.update_status (self.download_id, progress=100, status="Complete", force_update=True)
+            video_queue.update_status (self.download_id, progress=100, status="Complete", eta="", force_update=True)
         elif process.poll () == 0 and self.status != self.CANCELLED:
-            video_queue.update_status (self.download_id, progress=100, status="Complete", force_update=True)
+            video_queue.update_status (self.download_id, progress=100, status="Complete", eta="", force_update=True)
         else:
             if os.path.exists (self.video.avi_file):
                 os.remove (self.video.avi_file)
