@@ -4,7 +4,7 @@ from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
 class GiantBomb_Parser (Parser_Helper):
-    """Parser for GiantBomb pages. Updated 02/02/2009"""
+    """Parser for GiantBomb pages. Updated 07/04/2009"""
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?giantbomb\.com/(\S+)')
     video_url_str = 'http://www.giantbomb.com/%s'
     video_details_url = 'http://www.giantbomb.com/video/params/%s/'
@@ -13,7 +13,7 @@ class GiantBomb_Parser (Parser_Helper):
     video_url_params_re = re.compile (r'<URI bitRate="700">(\S+)</URI>')
     parser_type = "GiantBomb"
     host_str = "giantbomb.com"
-    version = datetime.date (2009, 2, 2)
+    version = datetime.date (2009, 7, 4)
 
 
     def getVideoPage (self, account="", password=""):

@@ -2,7 +2,7 @@ import re
 from youtubed2x_lib.other import getPage, PageNotFound
 
 class Parser_Helper (object):
-    """Abstract parser class. Updated 05/28/2009"""
+    """Abstract parser class. Updated 07/04/2009"""
     is_portal = False
     embed_file_extensions = {"video/flv": "flv"} # Most supported sites only distribute flv files
     parser_type = "Generic"

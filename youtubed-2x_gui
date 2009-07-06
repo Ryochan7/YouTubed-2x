@@ -14,7 +14,6 @@ import re
 import time
 from threading import Thread, Lock, Semaphore
 from youtubed2x_lib.videoitem import VideoItem
-from youtubed2x_lib.parsermanager import parser_manager
 from youtubed2x_lib.other import VERSION, APP_NAME, PageNotFound, WINDOWS, set_proxy, remove_proxy
 import youtubed2x_lib.settings as settings
 import youtubed2x_lib.download as downloader
@@ -197,8 +196,7 @@ class VideoItemMenu (object):
 
 # TODO: NEED TO RENAME CLASS AND INSTANCE. NOT A QUEUE ANYMORE. W00T!
 class QueueManager (object):
-    COLUMN_NAMES = {0: "url", 1: "title", 2: "progress", 3: "status", 4: "speed", 5: "size"}
-    COLUMN_TYPES = (gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_INT, gobject.TYPE_STRING, gobject.TYPE_STRING)
+    COLUMN_NAMES = {0: "url", 1: "title", 2: "progress", 3: "status", 4: "speed", 5: "size", 6: "eta"}
     signals = ["progress-update", "info-changed", "block-ui", "unblock-ui"]
     UPDATE_INTERVAL = .5 # In seconds
 
@@ -215,7 +213,7 @@ class QueueManager (object):
 
         self._sem_limit = sem_limit
         self.lock = Lock ()
-        self.tree_model = gtk.ListStore (gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_INT, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
+        self.tree_model = gtk.ListStore (gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_INT, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
         self.semaphore = Semaphore (self._sem_limit)
 
 
@@ -248,7 +246,7 @@ class QueueManager (object):
         id = self.next_status_id
         self.next_status_id += 1
         gtk.gdk.threads_enter ()
-        self.dude[id] = {"iter": self.tree_model.append ([thread.video.parser.page_url, thread.video.parser.page_url, 0, "Getting Info", "", ""]), "thread": thread, "last_update": time.time ()}
+        self.dude[id] = {"iter": self.tree_model.append ([thread.video.parser.page_url, thread.video.parser.page_url, 0, "Getting Info", "", "", ""]), "thread": thread, "last_update": time.time ()}
 #       self.tree_model.append (['http://www.youtube.com/watch?v=KZ1aZjTrh3I', 'http://www.youtube.com/watch?v=KZ1aZjTrh3I', 0, 'Waiting', "100 KB", "50 MB"]) # Replace 2nd URL with parsed title once page is parsed
         gtk.gdk.threads_leave ()
         self._num_objects += 1
@@ -593,7 +591,7 @@ class VideoDownloadThread (Thread):
 
     def _startFFmpeg (self, bitrate):
         testre = re.compile (r'time=(\d+).(\d+)')
-        durationre = re.compile (r'Duration: (\d{2}):(\d{2}):(\d{2}).(\d{1})')
+        durationre = re.compile (r'Duration: (\d{2}):(\d{2}):(\d{2}).(\d{2})')
         command = None
         process = None
 
@@ -648,11 +646,14 @@ class VideoDownloadThread (Thread):
                 if not duration:
                     match = durationre.match (msg)
                     if match:
-                        duration = (int(match.group (1)) * 60 + int (match.group (2)) * 60 + int (match.group (3))) * 10 + int (match.group (4))
+                        duration = (int (match.group (1)) * 3600) + (int (match.group (2)) * 60) + (int (match.group (3)))
+                        duration = float (duration) + (float (match.group (4)) * .01)
                     continue
                 match = testre.search (msg)
                 if match:
-                    percentage = int((int (match.group (1)) * 10 + int (match.group (2))) * 100 / duration)
+                    percentage = float (match.group (1))
+                    percentage = percentage + (float (match.group (2)) * .01)
+                    percentage = int (percentage*100/duration)
                     if percentage > 100:
                         percentage = 100
                     video_queue.update_status (self.download_id, progress=percentage)
@@ -704,10 +705,10 @@ class VideoDownloadThread (Thread):
             percentage = n00b.downloadPercentage ()
 
             if percentage >= 0:
-                video_queue.update_status (self.download_id, progress=n00b.downloadPercentage (), speed="%s/s" % n00b.humanizeSize (speeda))
+                video_queue.update_status (self.download_id, progress=n00b.downloadPercentage (), speed="%s/s" % n00b.humanizeSize (speeda), eta=n00b.humanizeTime (speeda))
             else:
                 # File size is not known. Update speed only
-                video_queue.update_status (self.download_id, progress=0, speed="%s/s" % n00b.humanizeSize (speeda))
+                video_queue.update_status (self.download_id, progress=0, speed="%s/s" % n00b.humanizeSize (speeda), eta=n00b.humanizeTime (speeda))
 
             try:
                 data = n00b.readBlock ()
@@ -722,10 +723,10 @@ class VideoDownloadThread (Thread):
             n00b.close () # Can only assume file completely downloaded
         else:
             n00b.cancel ()
-            video_queue.update_status (self.download_id, speed="", size="", force_update=True)
+            video_queue.update_status (self.download_id, speed="", size="", eta="", force_update=True)
             return False
 
-        video_queue.update_status (self.download_id, progress=100, speed="", size="", force_update=True)
+        video_queue.update_status (self.download_id, progress=100, speed="", size="", eta="", force_update=True)
         return True
 
 
@@ -1138,7 +1139,7 @@ class YouTubeDownloader (object):
         self.treeview1 = self.window.get_widget ("treeview1")
         self.column1 = gtk.TreeViewColumn ("URL", gtk.CellRendererText(), text=0)
         self.column1.set_sizing (gtk.TREE_VIEW_COLUMN_FIXED)
-        self.column1.set_min_width (200)
+#        self.column1.set_min_width (230)
         self.column1.set_resizable (True)
         self.column1.set_expand (True)
         self.column2 = gtk.TreeViewColumn ("Name")
@@ -1166,12 +1167,18 @@ class YouTubeDownloader (object):
         self.column3 = gtk.TreeViewColumn ("Progress", gtk.CellRendererProgress(), value=2)
         self.column3.set_min_width (75)
         self.column4 = gtk.TreeViewColumn ("Status", gtk.CellRendererText(), text=3)
+        self.column4.set_min_width (100)
+        self.column4.set_sizing (gtk.TREE_VIEW_COLUMN_FIXED)
+        self.column7 = gtk.TreeViewColumn ("Time Left", gtk.CellRendererText(), text=6)
+        self.column7.set_min_width (110)
+        self.column7.set_sizing (gtk.TREE_VIEW_COLUMN_FIXED)
 
         self.treeview1.connect ("button-press-event", self.treeview_right)
         self.treeview1.append_column (self.column2)
         self.treeview1.append_column (self.column6)
         self.treeview1.append_column (self.column3)
         self.treeview1.append_column (self.column5)
+        self.treeview1.append_column (self.column7)
         self.treeview1.append_column (self.column4)
         self.treeview1.set_model (video_queue.tree_model)
 
@@ -1266,6 +1273,8 @@ if __name__ == '__main__':
     if WINDOWS:
         sys.stdout = open ("log.txt", "w")
         sys.stderr = open ("errors.log", "w")
+
+    from youtubed2x_lib.parsermanager import parser_manager
 
     media_paths = [
             # Can't use __file__ here. Py2exe does not like it

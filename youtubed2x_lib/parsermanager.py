@@ -5,6 +5,13 @@ from other import WINDOWS
 from videoitem import VideoItem
 
 
+class AlreadyRegistered (Exception):
+    pass
+
+class InvalidParser (Exception):
+    pass
+
+
 class ParserManager (object):
     def __init__ (self):
         self.parsers = {}
@@ -26,8 +33,14 @@ class ParserManager (object):
             if identifier in self.parsers and self.parsers[identifier].version >= parser.version:
                 # Override parser with newer version
                 self.parsers.update ({identifier: parser})
-            else:
+            elif identifier not in self.parsers:
+                # New parser being added
                 self.parsers.update ({identifier: parser})
+            else:
+                # A newer parser is already registered
+                raise AlreadyRegistered ()
+        else:
+            raise InvalidParser ()
 
 
     def _register_app_parsers (self):
@@ -64,8 +77,14 @@ class ParserManager (object):
 
             if site_parser and issubclass (site_parser, parsers.Parser_Helper):
                 print site_parser
-                self.register (site_parser)
-                self._app_parsers_list.append (site_parser)
+                try:
+                    self.register (site_parser)
+                except AlreadyRegistered as exception:
+                    print "A newer version of parser %s has already been registered" % possible_module
+                except InvalidParser as exception:
+                    print >> sys.stderr, "Parser %s is invalid." % possible_module
+                else:
+                    self._app_parsers_list.append (site_parser)
 
 
     def _register_user_parsers (self):
@@ -135,8 +154,14 @@ class ParserManager (object):
 
             if site_parser and issubclass (site_parser, parsers.Parser_Helper):
                 print site_parser
-                self.register (site_parser)
-                self._user_parsers_list.append (site_parser)
+                try:
+                    self.register (site_parser)
+                except AlreadyRegistered as exception:
+                    print "A newer version of parser %s has already been registered" % possible_module
+                except InvalidParser as exception:
+                    print >> sys.stderr, "Parser %s is invalid." % possible_module
+                else:
+                    self._user_parsers_list.append (site_parser)
 
         # Custom parsers loaded. Remove user_parser_dir
         # directory from sys.path

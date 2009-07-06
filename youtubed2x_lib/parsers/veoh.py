@@ -4,7 +4,7 @@ from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
 class Veoh_Parser (Parser_Helper):
-    """Parser for Veoh pages. Updated 06/07/2008"""
+    """Parser for Veoh pages. Updated 07/04/2009"""
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?veoh\.com/videos/(\w+)')
     video_url_str = 'http://www.veoh.com/videos/%s'
     video_detail_url = 'http://www.veoh.com/rest/video/%s/details'
@@ -15,7 +15,7 @@ class Veoh_Parser (Parser_Helper):
     is_portal = True
     parser_type = "Veoh"
     host_str = "veoh.com"
-    version = datetime.date (2009, 6, 7)
+    version = datetime.date (2009, 7, 4)
 
 
     def __init__ (self, video_id):

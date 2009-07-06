@@ -4,7 +4,7 @@ from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
 class YouPorn_Parser (Parser_Helper):
-    """Parser for YouPorn pages. Updated 01/07/2009"""
+    """Parser for YouPorn pages. Updated 07/04/2009"""
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?youporn\.com/watch/(\d+)')
     video_url_str = 'http://www.youporn.com/watch/%s'
     video_url_real_str = 'http://download.youporn.com/download/%s/?%s'
@@ -12,7 +12,7 @@ class YouPorn_Parser (Parser_Helper):
     video_url_params_re = re.compile (r'<a href="http://download.youporn.com/download/(\d+)/\?(\S+)">FLV - Flash Video format</a>')
     parser_type = "YouPorn"
     host_str = "youporn.com"
-    version = datetime.date (2009, 1, 7)
+    version = datetime.date (2009, 7, 4)
 
 
     def __init__ (self, video_id):

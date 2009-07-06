@@ -4,7 +4,7 @@ from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
 class PornoTube_Parser (Parser_Helper):
-    """Parser for PornoTube pages. Updated 06/25/2009"""
+    """Parser for PornoTube pages. Updated 07/04/2009"""
     # URLs and RegExp statements from pornotube-dl (some slightly modified)
     const_video_url_re = re.compile (r'(?:http://)?(?:www\.)?pornotube\.com/media\.php\?m=(\d+)')
     domain_str = "http://www.pornotube.com/"
@@ -19,7 +19,7 @@ class PornoTube_Parser (Parser_Helper):
     video_url_mdomain_re = re.compile (r'&mediaDomain=([^&]+)&')
     parser_type = "PornoTube"
     host_str = "pornotube.com"
-    version = datetime.date (2009, 6, 25)
+    version = datetime.date (2009, 7, 4)
 
 
     def getVideoPage (self):

@@ -4,7 +4,7 @@ from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
 class ScrewAttack_Parser (Parser_Helper):
-    """Parser for ScrewAttack pages. Updated 06/26/2009"""
+    """Parser for ScrewAttack pages. Updated 07/04/2009"""
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?screwattack\.com/(\S+)')
     video_url_str = 'http://www.screwattack.com/%s'
     video_title_re = re.compile (r'<h1 class="title">([^<]*)</h1>')
@@ -13,7 +13,7 @@ class ScrewAttack_Parser (Parser_Helper):
     embed_file_extensions = {"video/mp4": "mp4"}
     parser_type = "ScrewAttack"
     host_str = "screwattack.com"
-    version = datetime.date (2009, 6, 26)
+    version = datetime.date (2009, 7, 4)
 
 
     def __init__ (self, video_id):

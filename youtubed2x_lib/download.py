@@ -18,6 +18,8 @@ class FileDownloader (object):
     BYTES_PER_KB = 1024 # 1 KB
     TRANSFER_PER_BLOCK = BYTES_PER_KB * 5 # 5 KB
     TMP_EXTENSION = ".tmp"
+    SECONDS_PER_MINUTE = 60
+    SECONDS_PER_HOUR = SECONDS_PER_MINUTE**2
 
     def __init__ (self, url, output_file_path):
         self.url = url
@@ -103,6 +105,20 @@ class FileDownloader (object):
         else:
             size_str = "%.2f %sB" % (remain, suffix)
         return size_str
+
+
+    def humanizeTime (self, speed):
+        if speed < 0:
+            raise Exception ("Speed must be greater than zero")
+        file_size = self.getFileSize ()
+        if file_size < 0:
+            return "? h ? m ? s"
+
+        time_in_seconds = (file_size - self.getBytesDownloaded ()) / speed
+        (remain_hour, tmp_min) = divmod (time_in_seconds, self.__class__.SECONDS_PER_HOUR)
+        (remain_min, remain_sec) = divmod (tmp_min, self.__class__.SECONDS_PER_MINUTE)
+        remain_string = "%02d h %02d m %02d s" % (remain_hour, remain_min, remain_sec)
+        return remain_string
 
 
     def cancel (self):

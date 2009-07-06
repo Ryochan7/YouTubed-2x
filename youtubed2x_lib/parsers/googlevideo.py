@@ -4,7 +4,7 @@ from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
 class GoogleVideo_Parser (Parser_Helper):
-    """Parser for GoogleVideo pages. Updated 05/28/2009"""
+    """Parser for GoogleVideo pages. Updated 07/04/2009"""
     const_video_url_re = re.compile (r'^(?:http://)?video\.google\.com/videoplay\?docid=((?:-)?\d+)')
     video_url_str = 'http://video.google.com/videoplay?docid=%s'
     video_title_re = re.compile (r'<title>([^<]*)</title>')
@@ -13,7 +13,7 @@ class GoogleVideo_Parser (Parser_Helper):
     embed_file_extensions = {"video/mp4": "mp4"}
     parser_type = "GoogleVideo"
     host_str = "video.google.com"
-    version = datetime.date (2009, 5, 28)
+    version = datetime.date (2009, 7, 4)
 
 
     def __init__ (self, video_id):

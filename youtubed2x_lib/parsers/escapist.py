@@ -6,7 +6,7 @@ from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
 class Escapist_Parser (Parser_Helper):
-    """Parser for The Escapist pages. Updated 06/26/2009"""
+    """Parser for The Escapist pages. Updated 07/04/2009"""
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?escapistmagazine\.com/videos/view/(\S+)')
     video_url_str = 'http://www.escapistmagazine.com/videos/view/%s'
     video_url_secondary_str = "http://www.themis-media.com/global/castfire/m4v/%s"
@@ -16,7 +16,7 @@ class Escapist_Parser (Parser_Helper):
     post_vars = {"version": "ThemisMedia1.2", "format": ""}
     parser_type = "The Escapist"
     host_str = "escapistmagazine.com"
-    version = datetime.date (2009, 6, 26)
+    version = datetime.date (2009, 7, 4)
 
 
     def _parseRealURL (self, commands):

@@ -4,7 +4,7 @@ from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
 class Pornhub_Parser (Parser_Helper):
-    """Parser for Pornhub pages. Updated 01/07/2009"""
+    """Parser for Pornhub pages. Updated 07/04/2009"""
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?pornhub\.com/view_video.php\?viewkey=(\w+)$')
     domain_str = "http://www.pornhub.com/"
     video_url_str = 'http://www.pornhub.com/view_video.php?viewkey=%s'
@@ -13,7 +13,7 @@ class Pornhub_Parser (Parser_Helper):
     video_key_re = re.compile (r"<flv_url>(\S+)</flv_url>")
     parser_type = "Pornhub"
     host_str = "pornhub.com"
-    version = datetime.date (2009, 1, 7)
+    version = datetime.date (2009, 7, 4)
 
 
     def _parseRealURL (self, commands):

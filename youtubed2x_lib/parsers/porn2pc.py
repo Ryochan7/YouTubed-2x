@@ -8,12 +8,12 @@ from pacoporn import PacoPorn_Parser
 
 
 class Porn2Pc_Parser (Parser_Helper):
-    """Non-Parser for Porn2PC pages. Updated 06/03/2009"""
+    """Non-Parser for Porn2PC pages. Updated 07/04/2009"""
     const_video_url_re = re.compile (r'^((?:http://)?(?:www\.)?porn2pc\.com/)(\S+)')
     video_url_str = 'http://www.porn2pc.com/%s'
     parser_type = "Porn2Pc"
     host_str = "porn2pc.com"
-    version = datetime.date (2009, 6, 3)
+    version = datetime.date (2009, 7, 4)
 
 
     @classmethod

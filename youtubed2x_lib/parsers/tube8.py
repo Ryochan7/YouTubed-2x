@@ -4,14 +4,14 @@ from youtubed2x_lib.parsers import Parser_Helper
 
 
 class Tube8_Parser (Parser_Helper):
-    """Parser for Tube8 pages. Updated 07/26/2008"""
+    """Parser for Tube8 pages. Updated 07/04/2009"""
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?tube8\.com/(\S+/\S+/\d+)(?:/)?$')
     video_url_str = 'http://www.tube8.com/%s/'
     video_title_re = re.compile (r'">([\S ]+)</h1>')
     video_url_params_re = re.compile (r'param name="FlashVars" value="videoUrl=(\S+)&imageUrl=')
     parser_type = "Tube8"
     host_str = "tube8.com"
-    version = datetime.date (2009, 7, 26)
+    version = datetime.date (2009, 7, 4)
 
 
     def _parseRealURL (self, commands):

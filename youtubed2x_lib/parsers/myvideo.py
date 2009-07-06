@@ -4,14 +4,14 @@ from youtubed2x_lib.parsers import Parser_Helper
 
 
 class MyVideo_Parser (Parser_Helper):
-    """Parser for MyVideo pages. Updated 01/08/2009"""
+    """Parser for MyVideo pages. Updated 07/04/2009"""
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?myvideo\.de/watch/(\d+)(?:/\S+)?$')
     video_url_str = 'http://www.myvideo.de/watch/%s/'
     video_title_re = re.compile (r"<td class='globalHd'>([^<]*)</td>")
     video_url_params_re = re.compile (r"<link rel='image_src' href='(\S+)' />")
     parser_type = "MyVideo"
     host_str = "myvideo.de"
-    version = datetime.date (2009, 1, 8)
+    version = datetime.date (2009, 7, 4)
 
 
     def _parseRealURL (self, commands):

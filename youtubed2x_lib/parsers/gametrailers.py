@@ -4,7 +4,7 @@ from youtubed2x_lib.parsers import Parser_Helper
 
 
 class GameTrailers_Parser (Parser_Helper):
-    """Parser for GameTrailers pages. Updated 06/26/2009"""
+    """Parser for GameTrailers pages. Updated 07/04/2009"""
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?gametrailers\.com/video/(\S+)')
     video_url_str = 'http://www.gametrailers.com/video/%s'
     video_title_re = re.compile (r'<span class="MovieTitle">([^<]*)</span>')
@@ -12,7 +12,7 @@ class GameTrailers_Parser (Parser_Helper):
     embed_file_extensions = {"video/quicktime": "mov"}
     parser_type = "GameTrailers"
     host_str = "gametrailers.com"
-    version = datetime.date (2009, 6, 26)
+    version = datetime.date (2009, 7, 4)
 
 
     def __init__ (self, video_id):

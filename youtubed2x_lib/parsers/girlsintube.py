@@ -4,7 +4,7 @@ from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
 class GirlsInTube_Parser (Parser_Helper):
-    """Parser for GirlsInTube pages. Updated 02/22/2009"""
+    """Parser for GirlsInTube pages. Updated 07/04/2009"""
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?girlsintube\.com/(\S+.\d+)')
     video_url_str = 'http://girlsintube.com/%s'
     video_url_age_post = {'year': '1929', 'month': '1', 'day': '1', 'prescreen_submit': 'Continue'}
@@ -12,7 +12,7 @@ class GirlsInTube_Parser (Parser_Helper):
     video_url_params_re = re.compile (r"{ 'clip': {'url': '(\S+)', ")
     parser_type = "GirlsInTube"
     host_str = "girlsintube.com"
-    version = datetime.date (2009, 2, 22)
+    version = datetime.date (2009, 7, 4)
 
 
     def getVideoPage (self, account="", password=""):

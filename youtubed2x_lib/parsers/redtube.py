@@ -4,7 +4,7 @@ from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
 class RedTube_Parser (Parser_Helper):
-    """Parser for RedTube pages. Updated 06/14/2009"""
+    """Parser for RedTube pages. Updated 07/04/2009"""
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?redtube\.com/(\d+)$')
     domain_str = "http://www.redtube.com/"
     video_url_str = 'http://www.redtube.com/%s'
@@ -14,7 +14,7 @@ class RedTube_Parser (Parser_Helper):
     video_map_table = ['R', '1', '5', '3', '4', '2', 'O', '7', 'K', '9', 'H', 'B', 'C', 'D', 'X', 'F', 'G', 'A', 'I', 'J', '8', 'L', 'M', 'Z', '6', 'P', 'Q', '0', 'S', 'T', 'U', 'V', 'W', 'E', 'Y', 'N']
     parser_type = "RedTube"
     host_str = "redtube.com"
-    version = datetime.date (2009, 6, 14)
+    version = datetime.date (2009, 7, 4)
 
 
     # TODO: Fix to use dynamic expires date

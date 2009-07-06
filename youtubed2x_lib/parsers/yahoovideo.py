@@ -5,7 +5,7 @@ from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
 class YahooVideo_Parser (Parser_Helper):
-    """Parser for Yahoo Video pages. Updated 06/27/2009"""
+    """Parser for Yahoo Video pages. Updated 07/04/2009"""
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?video\.yahoo\.com/(\S+)')
     video_url_str = 'http://video.yahoo.com/%s'
     video_details_page = "http://cosmos.bcst.yahoo.com/up/yep/process/getPlaylistFOP.php?node_id=%s"
@@ -14,7 +14,7 @@ class YahooVideo_Parser (Parser_Helper):
     video_url_params_re = re.compile (r'<STREAM APP="(\S+)" FULLPATH="(\S+)" CLIPID')
     parser_type = "Yahoo Video"
     host_str = "video.yahoo.com"
-    version = datetime.date (2009, 6, 27)
+    version = datetime.date (2009, 7, 4)
 
 
     def _parsePlayerCommands (self, page_dump):
