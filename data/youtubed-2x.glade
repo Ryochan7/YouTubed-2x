@@ -6,8 +6,8 @@
     <property name="visible">True</property>
     <property name="title" translatable="yes">YouTubed-2x</property>
     <property name="window_position">center</property>
-    <property name="default_width">610</property>
-    <property name="default_height">430</property>
+    <property name="default_width">675</property>
+    <property name="default_height">450</property>
     <signal name="delete_event" handler="on_window1_delete_event"/>
     <child>
       <widget class="GtkVBox" id="vbox1">
