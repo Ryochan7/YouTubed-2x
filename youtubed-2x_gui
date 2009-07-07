@@ -419,7 +419,7 @@ class VideoDownloadThread (Thread):
         self.status = self.__class__.PARSING
         status, message = self._parsePage ()
         if not status:
-            self.status = self.__class__.DONE # CHANGE LATER
+            self.status = self.__class__.CANCELLED
             self._finish_thread ("Parse Failed", False)
 
             gtk.gdk.threads_enter ()
@@ -1039,7 +1039,13 @@ class YouTubeDownloader (object):
         self.button1.set_sensitive (True)
         self.entry1.set_text ("")
         tree = self.treeview1.get_selection ()
-        tree.select_path (video_queue.queue_length ()-1,)
+        model, selection = tree.get_selected ()
+        if not selection:
+            tree.select_path (video_queue.queue_length ()-1,)
+        else:
+            index = model.get_path (selection)[0]
+            tree.select_path (index)
+
         self.select_item ()
 
 
@@ -1301,6 +1307,8 @@ if __name__ == '__main__':
         data_dirs = os.environ["XDG_DATA_DIRS"].split (":")
         for data_dir in data_dirs:
             media_paths.append (os.path.join (data_dir, "youtubed-2x"))
+    elif WINDOWS:
+        media_paths.append (os.path.join (sys.prefix, "share", "youtubed-2x"))
 
 
     app_settings = settings.Settings ()

@@ -19,7 +19,7 @@ class ParserManager (object):
         self._user_parsers_list = []
         self._register_app_parsers ()
         self._register_user_parsers ()
-        print self.parsers
+#        print self.parsers
 
 
     def register (self, parser):
@@ -76,7 +76,6 @@ class ParserManager (object):
                     site_parser = getattr (parser_module, item)
 
             if site_parser and issubclass (site_parser, parsers.Parser_Helper):
-                print site_parser
                 try:
                     self.register (site_parser)
                 except AlreadyRegistered as exception:
@@ -85,6 +84,7 @@ class ParserManager (object):
                     print >> sys.stderr, "Parser %s is invalid." % possible_module
                 else:
                     self._app_parsers_list.append (site_parser)
+#                print site_parser
 
 
     def _register_user_parsers (self):
@@ -153,7 +153,6 @@ class ParserManager (object):
                     site_parser = getattr (parser_module, item)
 
             if site_parser and issubclass (site_parser, parsers.Parser_Helper):
-                print site_parser
                 try:
                     self.register (site_parser)
                 except AlreadyRegistered as exception:
@@ -162,6 +161,7 @@ class ParserManager (object):
                     print >> sys.stderr, "Parser %s is invalid." % possible_module
                 else:
                     self._user_parsers_list.append (site_parser)
+#                print site_parser
 
         # Custom parsers loaded. Remove user_parser_dir
         # directory from sys.path
@@ -175,7 +175,7 @@ class ParserManager (object):
 
         spliturl = urlparse.urlsplit (full_url)
         hostname = spliturl.hostname
-        print len (self.parsers.keys ())
+#        print len (self.parsers.keys ())
 
         if not hostname:
             return None
