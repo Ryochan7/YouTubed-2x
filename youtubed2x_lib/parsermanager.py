@@ -55,7 +55,7 @@ class ParserManager (object):
                 file_list.remove ("__init__.pyo")
             module_list = map (lambda file_list: file_list[:-4], file_list)
         else:
-            file_list = os.listdir (os.path.join (__package__, "parsers"))
+            file_list = os.listdir (os.path.join (os.path.dirname (__file__), "parsers"))
             module_list = filter (lambda file_list: file_list.endswith (".py"), file_list)
             module_list = map (lambda module_list: module_list[:-3], module_list)
 
