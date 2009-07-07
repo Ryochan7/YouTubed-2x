@@ -66,13 +66,13 @@ if WINDOWS:
         }
     }
     stuff["data_files"].append (("bin", [os.path.join ("bin", "ffmpeg.exe")]))
-    stuff["data_files"].append ((os.path.join ("etc", "gtk-2.0"), [os.path.join ("gtk-win", "etc", "gtk-2.0", file) for file in os.listdir (os.path.join ("gtk-win", "etc", "gtk-2.0"))]))
-    stuff["data_files"].append ((os.path.join ("etc", "pango"), [os.path.join ("gtk-win", "etc", "pango", file) for file in os.listdir (os.path.join ("gtk-win", "etc", "pango"))]))
-    stuff["data_files"].append ((os.path.join ("lib", "gtk-2.0", "2.10.0", "engines"), [os.path.join ("gtk-win", "lib", "gtk-2.0", "2.10.0", "engines", file) for file in os.listdir (os.path.join ("gtk-win", "lib", "gtk-2.0", "2.10.0", "engines"))]))
-    stuff["data_files"].append ((os.path.join ("lib", "gtk-2.0", "2.10.0", "loaders"), [os.path.join ("gtk-win", "lib", "gtk-2.0", "2.10.0", "loaders", file) for file in os.listdir (os.path.join ("gtk-win", "lib", "gtk-2.0", "2.10.0", "loaders"))]))
-    stuff["data_files"].append ((os.path.join ("lib", "pango", "1.6.0", "modules"), [os.path.join ("gtk-win", "lib", "pango", "1.6.0", "modules", file) for file in os.listdir (os.path.join ("gtk-win", "lib", "pango", "1.6.0", "modules"))]))
-    stuff["data_files"].append ((os.path.join ("share", "themes", "Default", "gtk-2.0-key"), [os.path.join ("gtk-win", "share", "themes", "Default", "gtk-2.0-key", file) for file in os.listdir (os.path.join ("gtk-win", "share", "themes", "Default", "gtk-2.0-key"))]))
-    stuff["data_files"].append ((os.path.join ("share", "themes", "MS-Windows", "gtk-2.0"), [os.path.join ("gtk-win", "share", "themes", "MS-Windows", "gtk-2.0", file) for file in os.listdir (os.path.join ("gtk-win", "share", "themes", "MS-Windows", "gtk-2.0"))]))
+    stuff["data_files"].append ((os.path.join ("etc", "gtk-2.0"), [os.path.join ("gtk-win", "etc", "gtk-2.0", file) for file in os.listdir (os.path.join ("gtk-win", "etc", "gtk-2.0")) if not file.startswith ('.')]))
+    stuff["data_files"].append ((os.path.join ("etc", "pango"), [os.path.join ("gtk-win", "etc", "pango", file) for file in os.listdir (os.path.join ("gtk-win", "etc", "pango")) if not file.startswith ('.')]))
+    stuff["data_files"].append ((os.path.join ("lib", "gtk-2.0", "2.10.0", "engines"), [os.path.join ("gtk-win", "lib", "gtk-2.0", "2.10.0", "engines", file) for file in os.listdir (os.path.join ("gtk-win", "lib", "gtk-2.0", "2.10.0", "engines")) if not file.startswith ('.')]))
+    stuff["data_files"].append ((os.path.join ("lib", "gtk-2.0", "2.10.0", "loaders"), [os.path.join ("gtk-win", "lib", "gtk-2.0", "2.10.0", "loaders", file) for file in os.listdir (os.path.join ("gtk-win", "lib", "gtk-2.0", "2.10.0", "loaders")) if not file.startswith ('.')]))
+    stuff["data_files"].append ((os.path.join ("lib", "pango", "1.6.0", "modules"), [os.path.join ("gtk-win", "lib", "pango", "1.6.0", "modules", file) for file in os.listdir (os.path.join ("gtk-win", "lib", "pango", "1.6.0", "modules")) if not file.startswith ('.')]))
+    stuff["data_files"].append ((os.path.join ("share", "themes", "Default", "gtk-2.0-key"), [os.path.join ("gtk-win", "share", "themes", "Default", "gtk-2.0-key", file) for file in os.listdir (os.path.join ("gtk-win", "share", "themes", "Default", "gtk-2.0-key")) if not file.startswith ('.')]))
+    stuff["data_files"].append ((os.path.join ("share", "themes", "MS-Windows", "gtk-2.0"), [os.path.join ("gtk-win", "share", "themes", "MS-Windows", "gtk-2.0", file) for file in os.listdir (os.path.join ("gtk-win", "share", "themes", "MS-Windows", "gtk-2.0")) if not file.startswith ('.')]))
     #print stuff["data_files"]
     setup (options=opts, console=["youtubed-2x"], windows=["youtubed-2x_gui"], **stuff)
 else:
