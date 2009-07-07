@@ -52,7 +52,7 @@ def getPage (url, data=None, read_page=True, get_content_type=False, additional_
     return page, newurl
 
 # Set user agent and cookie management
-VERSION = "2009.06.17"
+VERSION = "2009.07.07"
 APP_NAME = "YouTubed-2x"
 #USER_AGENT = {'User-agent' : '%s/%s' % (APP_NAME, VERSION)}
 USER_AGENT = "%s/%s" % (APP_NAME, VERSION)
