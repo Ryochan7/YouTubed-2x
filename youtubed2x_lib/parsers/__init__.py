@@ -28,6 +28,12 @@ class Parser_Helper (object):
     def getEmbedType (self):
         return self.embed_file_type
 
+
+    def setEmbedType (self, embed_type):
+        if embed_type in self.embed_file_extensions:
+            self.embed_file_type = embed_type
+
+
     def getEmbedExtension (self):
         return self.__class__.embed_file_extensions.get (self.embed_file_type, "flv")
 
@@ -72,7 +78,8 @@ class Parser_Helper (object):
         title = self._parseTitle (page_dump)
         commands = self._parsePlayerCommands (page_dump)
         download_url = self._parseRealURL (commands)
-        return title, download_url
+        headers = self._getContentInformation (download_url)
+        return title, download_url, headers
 
 
     def _parseTitle (self, page_dump):
@@ -92,6 +99,11 @@ class Parser_Helper (object):
         else:
             commands = match.groups ()
         return commands
+
+
+    def _getContentInformation (self, url):
+        page, newurl, headers = getPage (url, read_page=False, get_headers=True)
+        return headers
 
 
     def _parseRealURL (self, commands):

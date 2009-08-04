@@ -11,7 +11,7 @@ class PageNotFound (Exception):
     pass
 
 
-def getPage (url, data=None, read_page=True, get_content_type=False, additional_headers={}):
+def getPage (url, data=None, read_page=True, get_headers=False, additional_headers={}):
     """Generic function that makes requests for pages"""
     if data and not isinstance (data, dict):
         raise TypeError ("Data argument must be a dictionary")
@@ -43,11 +43,8 @@ def getPage (url, data=None, read_page=True, get_content_type=False, additional_
 
     newurl = handle.geturl ()
     handle.close ()
-    content_type = handle.headers.get ("Content-type")
-
-    if get_content_type:
-        content_type = handle.headers.get ("Content-type")
-        return page, newurl, content_type
+    if get_headers:
+        return page, newurl, handle.info ()
 
     return page, newurl
 

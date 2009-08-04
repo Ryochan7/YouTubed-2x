@@ -9,7 +9,7 @@ class YouTube_Parser (Parser_Helper):
     const_video_url_re = re.compile (r'^(?:http://)?(?:\w+\.)?youtube\.com/(?:v/|(?:watch(?:\.php)?)?\?(?:.+&)?v=)?([0-9A-Za-z_-]+)(?(1)[&/].*)?$')
     video_url_str = 'http://www.youtube.com/watch?v=%s'
     video_url_real_str = 'http://www.youtube.com/get_video?video_id=%s&t=%s'
-    video_url_real_high_str = 'http://www.youtube.com/get_video?video_id=%s&t=%s&fmt=18'
+    video_url_real_high_str = "%s&fmt=18" % video_url_real_str
     video_title_re = re.compile (r'<title>YouTube - ([^<]*)</title>')
     video_url_params_re = re.compile (r', "t": "([^"]+)"')
     login_required_re = re.compile (r"^http://www.youtube.com/verify_age\?next_url=/watch")
@@ -17,7 +17,7 @@ class YouTube_Parser (Parser_Helper):
     embed_file_extensions = {"video/flv": "flv", "video/mp4": "mp4"}
     parser_type = "YouTube"
     host_str = "youtube.com"
-    version = datetime.date (2009, 7, 4)
+    version = datetime.date (2009, 8, 3)
 
 
     def __init__ (self, video_id):
@@ -60,7 +60,7 @@ class YouTube_Parser (Parser_Helper):
         obtained_url = False
         content_type = self.embed_file_type
         try:
-            page, real_url, content_type = getPage (secondary_url, read_page=False, get_content_type=True)
+            page, real_url, content_type = getPage (secondary_url, read_page=False, get_headers=True)
             obtained_url = True
         except PageNotFound, e:
             pass
@@ -71,13 +71,13 @@ class YouTube_Parser (Parser_Helper):
             page, real_url = getPage (secondary_url, read_page=False)
 
         # Test should not be necessary if it got this far
-        if content_type not in ["video/flv", "video/mp4"]:
+        if content_type["Content-Type"] not in ["video/flv", "video/mp4"]:
             raise self.__class__.URLBuildFailed ("An unexpected content type was found. Found: %s" % content_type)
         else:
-            self.embed_file_type = content_type
+            self.embed_file_type = content_type["Content-Type"]
 
-        self.real_url = real_url
-        return real_url
+        self.real_url = secondary_url
+        return secondary_url
 
 
     @staticmethod

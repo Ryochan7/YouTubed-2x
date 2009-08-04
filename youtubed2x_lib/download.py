@@ -13,6 +13,9 @@ class NoSessionException (Exception):
 class ActiveSessionException (Exception):
     pass
 
+class ResumeFail (Exception):
+    pass
+
 
 class FileDownloader (object):
     BYTES_PER_KB = 1024 # 1 KB
@@ -20,6 +23,7 @@ class FileDownloader (object):
     TMP_EXTENSION = ".tmp"
     SECONDS_PER_MINUTE = 60
     SECONDS_PER_HOUR = SECONDS_PER_MINUTE**2
+    UNKNOWN_FILESIZE = -1
 
     def __init__ (self, url, output_file_path):
         self.url = url
@@ -29,6 +33,7 @@ class FileDownloader (object):
         self._request.add_header ("User-Agent", USER_AGENT)
         self._handler = None
         self._bytes_downloaded = 0
+        self._filesize = self.__class__.UNKNOWN_FILESIZE # Use -1 when file size is unknown
 
 
     def setFileLocation (self, path):
@@ -36,15 +41,46 @@ class FileDownloader (object):
 
 
     def open (self):
-        if self._handler is None:
-            self._handler = urllib2.urlopen (self._request)
-        else:
+        if self._handler is not None:
             raise ActiveSessionException ("Request is already open")
 
         if os.path.exists (self.output_file_path):
-            raise FileExistException ("File already exists")
+            file_size = os.path.getsize (self.output_file_path)
+            self._request.add_header ("Range", "bytes=%s-" % (file_size))
+            try:
+                self._handler = urllib2.urlopen (self._request)
+            except urllib2.HTTPError as exception:
+                if exception.code == 416:
+                    raise FileExistException ("File already exists and assumed fully downloaded")
+                else:
+                    raise exception
+
+            content_range = self._handler.info ().get ("Content-Range", None)
+            if content_range:
+                self._filesize = long (content_range.split ('/')[1])
+            else:
+                self._filesize = long (self._handler.info ().get ("Content-Length", self.__class__.UNKNOWN_FILESIZE))
+
+            if content_range and self._filesize == file_size:
+                self._handler.close ()
+                self._handler = None
+                raise FileExistException ("File already exists")
+            elif content_range:
+                self._output_file = open (self.output_file_path, 'ab')
+                self._bytes_downloaded = file_size
+            elif self._filesize == file_size:
+                self._handler.close ()
+                self._handler = None
+                raise FileExistException ("File already exists")
+            else:
+                self._handler.close ()
+                self._handler = None
+                raise ResumeFail ("Could not resume file download")
+                
         else:
+            self._handler = urllib2.urlopen (self._request)
             self._output_file = open (self.output_file_path, 'wb')
+            self._filesize = long (self._handler.info ().get ("Content-Length", self.__class__.UNKNOWN_FILESIZE))
 
 
     def readBlock (self):
@@ -59,7 +95,7 @@ class FileDownloader (object):
 
     def getFileSize (self):
         if self._handler:
-            return long (self._handler.info ().get ("Content-Length", -1)) # Return -1 if content length is unknown
+            return self._filesize # Return -1 if content length is unknown
         else:
             raise NoSessionException ("No open request initiated")
 
@@ -73,7 +109,7 @@ class FileDownloader (object):
         if file_size > 0:
             return long (self._bytes_downloaded / float (file_size) * 100)
         else:
-            return -1
+            return self.__class__.UNKNOWN_FILESIZE
 
 
     def close (self):
@@ -82,16 +118,18 @@ class FileDownloader (object):
             self._handler = None
             self._bytes_downloaded = 0
             self._output_file.close ()
+            self._filesize = self.__class__.UNKNOWN_FILESIZE
             #shutil.move (self.output_file_path, self.output_file_path)
         else:
             raise NoSessionException ("No open request initiated")
 
 
-    def humanizeSize (self, size):
+    @classmethod
+    def humanizeSize (cls, size):
         if size == 0:
             exponent = 0
         else:
-            exponent = long (math.log (float (size), self.__class__.BYTES_PER_KB))
+            exponent = long (math.log (float (size), cls.BYTES_PER_KB))
 
         suf_str = "BKMGTPEZY"
         if exponent < len (suf_str):
@@ -99,7 +137,7 @@ class FileDownloader (object):
         else:
             suffix = '?'
 
-        remain = size / float (self.__class__.BYTES_PER_KB**exponent)
+        remain = size / float (cls.BYTES_PER_KB**exponent)
         if exponent == 0:
             size_str = "%.2f %s" % (remain, suffix)
         else:

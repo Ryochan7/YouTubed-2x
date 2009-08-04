@@ -102,6 +102,7 @@ class Settings (object):
         config.set ("settings", "process_limit", self.process_limit)
         config.set ("settings", "auto_download", self.auto_download)
         config.write (file)
+        file.close ()
         return
 
 

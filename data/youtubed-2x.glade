@@ -153,6 +153,20 @@
               </packing>
             </child>
             <child>
+              <widget class="GtkToolButton" id="pause_toolbutton">
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="label" translatable="yes">Pause</property>
+                <property name="use_underline">True</property>
+                <property name="stock_id">gtk-media-pause</property>
+                <signal name="clicked" handler="on_pause_toolbutton_clicked"/>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
+            <child>
               <widget class="GtkToolButton" id="toolbutton2">
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>

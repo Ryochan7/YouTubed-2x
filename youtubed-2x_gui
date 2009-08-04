@@ -17,9 +17,12 @@ from youtubed2x_lib.videoitem import VideoItem
 from youtubed2x_lib.other import VERSION, APP_NAME, PageNotFound, WINDOWS, set_proxy, remove_proxy
 import youtubed2x_lib.settings as settings
 import youtubed2x_lib.download as downloader
+from youtubed2x_lib.sessioninfo import SessionInfo
+
 
 if WINDOWS:
     import win32process
+
 
 class PropertiesWindow (object):
     def __init__ (self, glade_file):
@@ -215,6 +218,7 @@ class QueueManager (object):
         self.lock = Lock ()
         self.tree_model = gtk.ListStore (gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_INT, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
         self.semaphore = Semaphore (self._sem_limit)
+        self.sem_lock = Lock ()
 
 
     def register (self, signal, observer):
@@ -255,24 +259,30 @@ class QueueManager (object):
 
 
     def acquire_sem (self):
+        self.sem_lock.acquire ()
         if self._sem_limit == 0:
             self._running_items += 1
+            self.sem_lock.release ()
             return True
 
         status = self.semaphore.acquire (False)
         if status:
             self._running_items += 1
+        self.sem_lock.release ()
         return status
 
 
     def release_sem (self):
+        self.sem_lock.acquire ()
         if self._running_items > 0:
             if self._running_items <= self._sem_limit and self._sem_limit != 0:
                 self.semaphore.release ()
             self._running_items -= 1
+        self.sem_lock.release ()
 
 
     def alter_sem (self, value):
+        self.sem_lock.acquire ()
         if isinstance (value, int) and value >= 0:
             if value == 0:
                 self.semaphore = Semaphore (value)
@@ -280,6 +290,7 @@ class QueueManager (object):
                 self.semaphore = Semaphore (value-self._running_items)
 
             self._sem_limit = value
+        self.sem_lock.release ()
 
 
     def update_status (self, id, **kwargs):
@@ -367,10 +378,7 @@ class QueueManager (object):
 
 
     def is_empty (self):
-        if self._num_objects == 0:
-            return True
-
-        return False
+        return self._num_objects == 0
 
 
     def queue_length (self):
@@ -399,11 +407,51 @@ class QueueManager (object):
                 self.removeDownload (element)
 
 
+    def restore_session (self):
+        restore_session = SessionInfo ()
+        items = restore_session.read ()
+#        print items
+        for item in items:
+            youtube_video = parser_manager.validateURL (item[1])
+            youtube_video.setTitle (item[0])
+            youtube_video.setRealUrl (item[2])
+            youtube_video.setFlvFile (item[3])
+            youtube_video.setOutputFile (item[4])
+            youtube_video.setFileFormat (item[5])
+            youtube_video.setOutputRes (item[6])
+            youtube_video.setFileSize (item[8])
+            youtube_video.parser.setEmbedType (item[7])
+            video_queue.send ("block-ui")
+            VideoDownloadThread (youtube_video, item[9]).start ()
+#            if item[9]: VideoDownloadThread (youtube_video, VideoDownloadThread.DONE).start ()
+#            else: VideoDownloadThread (youtube_video).start ()
+
+
+
+    def save_session (self):
+        items = []
+        for element in self.dude.keys ():
+            thread = self.dude[element]["thread"]
+
+            if thread and (thread.status == thread.__class__.PAUSED or thread.status == thread.__class__.DONE or thread.status == thread.__class__.CANCELLED):
+                items.append ([thread.video, thread.status])
+
+#        print items
+        new_session = SessionInfo ()
+        if items:
+            for item in items:
+                new_session.addItem (item[0], item[1])
+            new_session.save ()
+        else:
+            new_session.delete ()
+        
+
+
 class VideoDownloadThread (Thread):
-    WAITING, PARSING, READY, CANCELLED, DONE = range (0,5)
+    _STATUS_ITEMS = (WAITING, PARSING, READY, CANCELLED, DONE, PAUSED, CANCELING) = range (0,7)
     SLEEP_HOLD = 1 # In seconds
 
-    def __init__ (self, video):
+    def __init__ (self, video, status=WAITING):
         super (VideoDownloadThread, self).__init__ ()
         self.setDaemon (True)
         self.video = video
@@ -411,24 +459,51 @@ class VideoDownloadThread (Thread):
         self.download_id = None
         self._downloader = None
         self._has_sem = False
-        self.status = self.__class__.WAITING
+
+        if status in self.__class__._STATUS_ITEMS:
+            self.status = status
+        else:
+            raise Exception ("'%s' is not a valid status" % status)
+
 
 
     def run (self):
         self.download_id = video_queue.add_try (self)
-        self.status = self.__class__.PARSING
-        status, message = self._parsePage ()
-        if not status:
-            self.status = self.__class__.CANCELLED
-            self._finish_thread ("Parse Failed", False)
-
-            gtk.gdk.threads_enter ()
-            video_queue.send ("unblock-ui")
-            gtk.gdk.threads_leave ()
+        if self.status == self.__class__.DONE:
+            video_queue.update_status (self.download_id, title=self.video.title, url=self.video.parser.page_url, force_update=True)
+            self._finish_thread ()
             return
+        elif self.status == self.__class__.CANCELLED:
+            video_queue.update_status (self.download_id, title=self.video.title, url=self.video.parser.page_url, force_update=True)
+            self._finish_thread ("Cancelled", False)
+            return
+            
 
-        self.status = self.__class__.WAITING
-        video_queue.update_status (self.download_id, title=self.video.title, url=self.video.parser.page_url, progress=0, status="Queued", force_update=True)
+        if not self.video.title and not self.video.real_url:
+            self.status = self.__class__.PARSING
+            status, message = self._parsePage ()
+            if not status:
+                self.status = self.__class__.CANCELLED
+                self._finish_thread ("Parse Failed", False)
+
+                gtk.gdk.threads_enter ()
+                video_queue.send ("unblock-ui")
+                gtk.gdk.threads_leave ()
+                return
+            else:
+                self.status = self.__class__.WAITING
+
+
+        if self.video.getFileSize () > 0 and os.path.exists (self.video.flv_file):
+            current_file_size = os.path.getsize (self.video.flv_file)
+            current_percentage = min (100, current_file_size / float (self.video.getFileSize ()) * 100)
+            self.status = self.__class__.PAUSED
+            video_queue.update_status (self.download_id, title=self.video.title, url=self.video.parser.page_url, progress=current_percentage, size=downloader.FileDownloader.humanizeSize (self.video.getFileSize ()), status="Paused", force_update=True)
+        elif self.video.getFileSize () > 0:
+            video_queue.update_status (self.download_id, title=self.video.title, url=self.video.parser.page_url, progress=0, size=downloader.FileDownloader.humanizeSize (self.video.getFileSize ()), status="Queued", force_update=True)
+        else:
+            video_queue.update_status (self.download_id, title=self.video.title, url=self.video.parser.page_url, progress=0, size="Unknown", status="Queued", force_update=True)
+
 
         auto_download = app_settings.auto_download
         if auto_download:
@@ -440,7 +515,7 @@ class VideoDownloadThread (Thread):
         video_queue.send ("unblock-ui")
         gtk.gdk.threads_leave ()
 
-        while self.status != self.__class__.READY and self.status != self.__class__.CANCELLED and not self._has_sem:
+        while self.status != self.__class__.READY and self.status != self.__class__.CANCELING and not self._has_sem:
             time.sleep (self.__class__.SLEEP_HOLD)
             if auto_download:
                 self._has_sem = video_queue.acquire_sem ()
@@ -449,12 +524,13 @@ class VideoDownloadThread (Thread):
 
         # This loop will likely be entered when a user starts
         # a download manually. Make sure to obey process limit
-        while not self._has_sem and self.status != self.__class__.CANCELLED:
+        while not self._has_sem and self.status != self.__class__.CANCELING:
             time.sleep (self.__class__.SLEEP_HOLD)
             self._has_sem = video_queue.acquire_sem ()
 
-        if self.status == self.__class__.CANCELLED:
-            self._finish_thread ("Cancelled")
+        if self.status == self.__class__.CANCELING:
+            self.status = self.__class__.CANCELLED
+            self._finish_thread ("Cancelled", False)
             if self._has_sem:
                 video_queue.release_sem ()
             return
@@ -495,8 +571,9 @@ class VideoDownloadThread (Thread):
         status = self._startWget ()
 
         # Did wget fail
-        if not status and self.status == self.__class__.CANCELLED:
-            self._finish_thread ("Cancelled")
+        if not status and self.status == self.__class__.CANCELING:
+            self.status = self.__class__.CANCELLED
+            self._finish_thread ("Cancelled", False)
             video_queue.release_sem ()
             return
         elif not status:
@@ -505,10 +582,16 @@ class VideoDownloadThread (Thread):
             video_queue.release_sem ()
             return
 
-        if self.status == self.__class__.CANCELLED:
-            self._finish_thread ("Cancelled")
+        if self.status == self.__class__.CANCELING:
+            self.status = self.__class__.CANCELLED
+            self._finish_thread ("Cancelled", False)
             video_queue.release_sem ()
             return
+
+        # Refresh GUI (particularly for the pause button)
+        gtk.gdk.threads_enter ()
+        video_queue.send ("unblock-ui")
+        gtk.gdk.threads_leave ()
 
         if not transcode:
             self._finish_thread ()
@@ -527,12 +610,13 @@ class VideoDownloadThread (Thread):
         status = self._startFFmpeg (bitrate)
 
         # Did ffmpeg fail
-        if not status and self.status == self.__class__.CANCELLED:
-            self._finish_thread ("Cancelled")
+        if not status and self.status == self.__class__.CANCELING:
+            self.status = self.__class__.CANCELLED
+            self._finish_thread ("Cancelled", False)
             video_queue.release_sem ()
             return
         elif not status:
-            self.staus = self.__class__.CANCELLED
+            self.status = self.__class__.CANCELLED
             self._finish_thread ("FFmpeg Failed", False)
             video_queue.release_sem ()
             return
@@ -541,7 +625,8 @@ class VideoDownloadThread (Thread):
             print "Flv video deleted."
             os.remove (self.video.flv_file)
 
-        if self.status == self.__class__.CANCELLED:
+        if self.status == self.__class__.CANCELING:
+            self.status = self.__class__.CANCELLED
             video_queue.release_sem ()
             return
 
@@ -564,10 +649,14 @@ class VideoDownloadThread (Thread):
         if isinstance (ready, bool) and ready:
             self.status = self.__class__.READY
 
+    def pause (self):
+        if self._downloader:
+            self.status = self.__class__.PAUSED
+
 
     def cancel (self):
         if self._downloader or not self._has_sem:
-            self.status = self.__class__.CANCELLED
+            self.status = self.__class__.CANCELING
 
         # Process is currently running. Kill process and cancel thread
         elif self.process_id and self.status == self.__class__.READY:
@@ -578,7 +667,7 @@ class VideoDownloadThread (Thread):
                 handle = win32api.OpenProcess (1, 0, self.process_id)
                 win32api.TerminateProcess (handle, 0)
 
-            self.status = self.__class__.CANCELLED
+            self.status = self.__class__.CANCELING
             self.process_id = None
         # Thread is active but likely transitioning to ffmpeg.
         # Wait and try to cancel
@@ -586,7 +675,7 @@ class VideoDownloadThread (Thread):
             gobject.timeout_add (500, self.cancel)
         # Thread should be in a save spot to just set the flag
         else:
-            self.status = self.__class__.CANCELLED
+            self.status = self.__class__.CANCELING
 
 
     def _startFFmpeg (self, bitrate):
@@ -614,6 +703,9 @@ class VideoDownloadThread (Thread):
             command = self.video.buildCommandList (bitrate, vid_length, vid_width)
         else:
             command = self.video.buildCommandList (bitrate)
+
+        if not command:
+            return True
 
         #print command
 
@@ -701,6 +793,8 @@ class VideoDownloadThread (Thread):
         self._downloader = n00b
 
         file_size = n00b.getFileSize ()
+        initial_size = n00b.getBytesDownloaded ()
+        self.video.setFileSize (file_size)
 
         if file_size > 0:
             video_queue.update_status (self.download_id, size="%s" % n00b.humanizeSize (n00b.getFileSize ()), status="Downloading", force_update=True)
@@ -709,14 +803,61 @@ class VideoDownloadThread (Thread):
             # download but stats can't be updated
             video_queue.update_status (self.download_id, size="Unknown", status="Downloading", force_update=True)
 
-        start_update = time.time ()
+        last_update = time.time ()
         try:
             data = n00b.readBlock ()
         except Exception as exception:
             return False
 
-        while data != "" and (self.status == self.__class__.READY):
-            speeda = n00b.getBytesDownloaded () / float ((time.time () - start_update))
+        # Refresh GUI (particularly for the pause button)
+        gtk.gdk.threads_enter ()
+        video_queue.send ("unblock-ui")
+        gtk.gdk.threads_leave ()
+
+        total_time = 0
+        while self.status == self.__class__.PAUSED or (data != "" and self.status == self.__class__.READY):
+            if self.status == self.__class__.PAUSED:
+                if n00b:
+                    # Pausing download. Have to close current session
+                    total_time += (time.time () - last_update)
+                    n00b.close ()
+                    n00b = None
+                    video_queue.update_status (self.download_id, speed="", eta="", status="Paused", force_update=True)
+                time.sleep (self.__class__.SLEEP_HOLD)
+                continue
+            # Have to re-open file downloader. Downloader will timeout
+            # when resumed after a few seconds,
+            # for some reason, if the same session is used.
+            elif not n00b:
+                try:
+                    n00b = self._downloader
+                    n00b.open ()
+                    video_queue.update_status (self.download_id, speed="", eta="", status="Downloading", force_update=True)
+                except downloader.FileExistException as exception:
+                    print "File already exists. Skipping Download"
+                    return True
+                except downloader.ResumeFail as exception:
+                    print >> sys.stderr, "%s" % exception
+                    if os.path.exists (self.video.flv_file):
+                        try:
+                            os.remove (self.video.flv_file)
+                        except OSError, IOError:
+                            pass
+                    return False
+                except Exception as exception:
+                    print >> sys.stderr, "%s" % exception
+                    return False
+
+                last_update = time.time ()
+                try:
+                    data = n00b.readBlock ()
+                except Exception as exception:
+                    print "%s" % exception
+                    return False
+                
+            total_time += (time.time () - last_update)
+            speeda = (n00b.getBytesDownloaded () - initial_size) / total_time
+#            speeda = n00b.getBytesDownloaded () / total_time
             percentage = n00b.downloadPercentage ()
 
             if percentage >= 0:
@@ -725,19 +866,39 @@ class VideoDownloadThread (Thread):
                 # File size is not known. Update speed only
                 video_queue.update_status (self.download_id, progress=0, speed="%s/s" % n00b.humanizeSize (speeda), eta=n00b.humanizeTime (speeda))
 
+            last_update = time.time ()
             try:
                 data = n00b.readBlock ()
             except Exception as exception:
+                print "%s" % exception
                 return False
 
         self._downloader = None
-
+        
         if self.status == self.__class__.READY and n00b.getBytesDownloaded () == file_size:
             n00b.close ()
         elif self.status == self.__class__.READY and file_size == -1:
             n00b.close () # Can only assume file completely downloaded
+        elif self.status == self.__class__.CANCELING and n00b:
+            n00b.cancel () # Download was cancelled while downloading
+            video_queue.update_status (self.download_id, speed="", size="", eta="", force_update=True)
+            return False
+        elif self.status == self.__class__.PAUSED and n00b and n00b.getBytesDownloaded () == file_size:
+            n00b.close () # Download was paused after file finished downloading
+            self.status = self.__class__.READY
+        elif self.status == self.__class__.PAUSED and file_size == -1:
+            n00b.close () # Download was paused after file finished
+                          # downloading. Can only assume file
+                          # completely downloaded
+            self.status = self.__class__.READY
         else:
-            n00b.cancel ()
+            print "WHY ME"
+            # Download was cancelled after being paused
+            if os.path.exists (self.video.flv_file):
+                try:
+                    os.remove (self.video.flv_file)
+                except OSError, IOError:
+                    pass
             video_queue.update_status (self.download_id, speed="", size="", eta="", force_update=True)
             return False
 
@@ -746,24 +907,13 @@ class VideoDownloadThread (Thread):
 
 
     def _parsePage (self):
+        parser_class = self.video.parser.__class__
         try:
             self.video.getVideoInformation ()
-        except self.video.parser.UnknownTitle as exception:
-            print >> sys.stderr, "%s. Stopping download." % exception
-            return False, exception.args
-        except self.video.parser.InvalidCommands as exception:
+        except (parser_class.UnknownTitle, parser_class.InvalidCommands, parser_class.URLBuildFailed, parser_class.InvalidPortal, parser_class.LoginRequired) as exception:
             print >> sys.stderr, "%s. Stopping download." % exception
             return False, exception.args
         except PageNotFound as exception:
-            print >> sys.stderr, "%s. Stopping download." % exception
-            return False, exception.args
-        except self.video.parser.URLBuildFailed as exception:
-            print >> sys.stderr, "%s. Stopping download." % exception
-            return False, exception.args
-        except self.video.parser.InvalidPortal as exception:
-            print >> sys.stderr, "%s. Stopping download." % exception
-            return False, exception.args
-        except self.video.parser.LoginRequired as exception:
             print >> sys.stderr, "%s. Stopping download." % exception
             return False, exception.args
         except Exception as exception:
@@ -842,23 +992,42 @@ class YouTubeDownloader (object):
             self.toolbutton1.set_sensitive (True)
             self.toolbutton2.set_sensitive (True)
             self.toolbutton2.set_label ("Remove")
+            self.pause_toolbutton.set_sensitive (False)
+            self.pause_toolbutton.set_label ("Pause")
         elif thread and thread.isAlive () and thread.status == thread.__class__.READY:
             self.toolbutton1.set_sensitive (False)
             self.toolbutton2.set_sensitive (True)
             self.toolbutton2.set_label ("Cancel")
+            if thread._downloader:
+                self.pause_toolbutton.set_sensitive (True)
+            else:
+                self.pause_toolbutton.set_sensitive (False)
+            self.pause_toolbutton.set_label ("Pause")
         elif thread and thread.isAlive () and thread.status == thread.__class__.PARSING:
             self.toolbutton1.set_sensitive (False)
             self.toolbutton2.set_sensitive (False)
             self.toolbutton2.set_label ("Remove")
+            self.pause_toolbutton.set_sensitive (False)
+            self.pause_toolbutton.set_label ("Pause")
         # Handle case of a cancelled download waiting to stop
-        elif thread and thread.isAlive () and thread.status == thread.__class__.CANCELLED:
+        elif thread and thread.isAlive () and thread.status == thread.__class__.CANCELING:
             self.toolbutton1.set_sensitive (False)
             self.toolbutton2.set_sensitive (False)
             self.toolbutton2.set_label ("Wait")
+            self.pause_toolbutton.set_sensitive (False)
+            self.pause_toolbutton.set_label ("Pause")
+        elif thread and thread.isAlive () and thread.status == thread.__class__.PAUSED:
+            self.toolbutton1.set_sensitive (False)
+            self.toolbutton2.set_sensitive (True)
+            self.toolbutton2.set_label ("Cancel")
+            self.pause_toolbutton.set_sensitive (True)
+            self.pause_toolbutton.set_label ("Resume")
         elif thread:
             self.toolbutton1.set_sensitive (False)
             self.toolbutton2.set_sensitive (True)
             self.toolbutton2.set_label ("Remove")
+            self.pause_toolbutton.set_sensitive (False)
+            self.pause_toolbutton.set_label ("Pause")
 
         path = model.get_path (selection)
         index = path[0]
@@ -897,9 +1066,11 @@ class YouTubeDownloader (object):
         elif thread and thread.isAlive () and thread.status == thread.__class__.READY:
             video_queue.finishDownload (thread_id)
         # Handle case of a cancelled download waiting to stop
-        elif thread and thread.isAlive () and thread.status == thread.__class__.CANCELLED:
+        elif thread and thread.isAlive () and thread.status == thread.__class__.CANCELING:
             print "Already cancelled. Waiting. Don't do anything"
             return
+        elif thread and thread.isAlive () and thread.status == thread.__class__.PAUSED:
+            video_queue.finishDownload (thread_id)
         elif thread:
             video_queue.removeDownload (thread_id)
 
@@ -1209,6 +1380,7 @@ class YouTubeDownloader (object):
         self.statusbar = self.window.get_widget ("statusbar1")
         #self.speed_label = self.window.get_widget ("speedlabel")
         self.statusbar_context_id = self.statusbar.get_context_id ("Statusbar")
+        self.pause_toolbutton = self.window.get_widget ("pause_toolbutton")
 
         self.sites_window = self.window.get_widget ("sites_dialog")
         sites_textview = self.window.get_widget ("sites_textview")
@@ -1240,7 +1412,7 @@ class YouTubeDownloader (object):
 'on_sites_activate': self.show_sites_window, 'on_close_sites_clicked': self.hide_sites_window, 'on_sites_dialog_delete_event': self.keep_sites_window,
 'on_sites_dialog_response': self.hide_sites_window, 'on_combobox2_changed': self.change_bitrate, "on_resolution_combobox_changed": self.resolution_change,
         "on_auto_download_check_toggled": self.change_auto_download, "on_openfolderbutton_clicked": self.open_video_folder,
-"on_filechooserbutton1_current_folder_changed": self.change_video_folder}
+"on_filechooserbutton1_current_folder_changed": self.change_video_folder, "on_pause_toolbutton_clicked": self.pause_download}
         self.window.signal_autoconnect (dic)
 
 
@@ -1287,6 +1459,23 @@ class YouTubeDownloader (object):
         app_settings.output_dir = self.folder_chooser.get_filename ()
 
 
+    def pause_download (self, widget):
+        tree = self.treeview1.get_selection ()
+        model, selection = tree.get_selected ()
+        if not selection:
+            return
+
+        url = model.get_value (selection, 0)
+        thread_id = video_queue.getThreadId (url)
+        thread = video_queue.getVideoThread (thread_id)
+        if thread.status == thread.__class__.READY and thread._downloader:
+            thread.pause ()
+        elif thread.status == thread.__class__.PAUSED:
+            thread.setReady ()
+
+        self.select_item ()
+
+
 
 if __name__ == '__main__':
     # If running on Windows, write output and error messages to text files.
@@ -1325,9 +1514,12 @@ if __name__ == '__main__':
     if app_settings.use_proxy and app_settings.proxy_server and app_settings.proxy_port:
         set_proxy (app_settings.proxy_server, app_settings.proxy_port)
 
+    video_queue.restore_session ()
     gtk.gdk.threads_init ()
     gtk.gdk.threads_enter ()
     gtk.main ()
     gtk.gdk.threads_leave ()
     app_settings.writeConfigFile ()
+    video_queue.save_session ()
+
 

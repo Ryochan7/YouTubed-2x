@@ -30,6 +30,7 @@ class VideoItem (object):
         self.file_format = self.__class__.AVI_FILE
         self.parser = site_parser
         self.output_res = self.__class__.RES_320
+        self.input_file_size = -1
 
 
     def __str__ (self):
@@ -76,13 +77,17 @@ class VideoItem (object):
         else:
             page, newurl = self.parser.getVideoPage ()
 
-        title, download_url = self.parser.parseVideoPage (page)
-        self._setTitle (title)
+        title, download_url, headers = self.parser.parseVideoPage (page)
+        self.setTitle (title)
         self.real_url = download_url
+        if headers.get ("Content-Length"):
+            self.input_file_size = long (headers.get ("Content-Length"))
+
         return True
 
 
-    def _setTitle (self, newtitle):
+
+    def setTitle (self, newtitle):
         """Replace characters that cannot be used for the filename \
 in a FAT32 filesystem. Incomplete"""
         if not isinstance (newtitle, str):
@@ -124,9 +129,36 @@ in a FAT32 filesystem. Incomplete"""
             self.file_format = format_id
 
 
-    def setFilePaths (self, path):
-        self.flv_file = os.path.join (path, "%s.%s" % (self.title, self.parser.getEmbedExtension ()))
-        self.avi_file = os.path.join (path, self.getOutputFileName ())
+    def setFlvFile (self, path):
+        self.flv_file = path
+
+
+    def setOutputFile (self, path):
+        self.avi_file = path
+
+
+    def setRealUrl (self, url):
+        self.real_url = url
+
+
+    def setFileSize (self, size):
+        if not isinstance (size, (int, long)):
+            raise Exception ("File size must be a int or long")
+        elif size < -1:
+            raise Exception ("File size can be no lower than -1")
+        else:
+            self.input_file_size = size
+
+
+    def getFileSize (self):
+        return self.input_file_size
+
+
+    def setFilePaths (self, directory):
+        flv_file = os.path.join (directory, "%s.%s" % (self.title, self.parser.getEmbedExtension ()))
+        self.setFlvFile (flv_file)
+        avi_file = os.path.join (directory, self.getOutputFileName ())
+        self.setOutputFile (avi_file)
 
 
     @staticmethod
@@ -148,7 +180,11 @@ in a FAT32 filesystem. Incomplete"""
             raise TypeError ("Video length must be an integer")
         elif width and not isinstance (width, int):
             raise TypeError ("Video width must be an integer")
-        
+
+        ignore_mimetypes = ("audio/mpeg", "audio/mp3", "audio/ogg",)
+        if self.parser.getEmbedType () in ignore_mimetypes:
+            return []
+
         commands = list ()
         temp_commands = self.command_dict.copy ()
         temp_commands.update ({'input_file': self.flv_file})
