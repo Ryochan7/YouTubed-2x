@@ -1,5 +1,6 @@
 import re
 import datetime
+import urllib2
 from youtubed2x_lib.parsers import Parser_Helper, getPage, PageNotFound
 
 
@@ -12,69 +13,104 @@ class YouTube_Parser (Parser_Helper):
     video_url_real_high_str = "%s&fmt=18" % video_url_real_str
     video_title_re = re.compile (r'<title>YouTube - ([^<]*)</title>')
     video_url_params_re = re.compile (r', "t": "([^"]+)"')
-    login_required_re = re.compile (r"^http://www.youtube.com/verify_age\?next_url=/watch")
+    login_required_re = re.compile (r"^http://www.youtube.com/verify_age\?(?:&)?next_url=/watch")
+
+    video_embed_info_url = "http://www.youtube.com/get_video_info?&video_id=%s&el=embedded"
+    video_embed_video_re = re.compile (r"status=ok&.*author=(?:[^&]+)&watermark=.*&token=([^&]+)&thumbnail_url")
+    video_embed_title_re = re.compile (r"&title=(\S+)&ftoken=")
+
     login_page = "http://www.youtube.com/signup"
-    embed_file_extensions = {"video/flv": "flv", "video/mp4": "mp4"}
+    embed_file_extensions = {"video/flv": "flv", "video/x-flv": "flv", "video/mp4": "mp4"}
     parser_type = "YouTube"
     host_str = "youtube.com"
-    version = datetime.date (2009, 8, 3)
+    version = datetime.date (2009, 8, 7)
 
 
     def __init__ (self, video_id):
         super (YouTube_Parser, self).__init__ (video_id)
         self.has_high_version = False
+        self.requires_login = False
 
 
     def getVideoPage (self, account="", password=""):
         if not isinstance (account, str) or not isinstance (password, str):
             raise TypeError ("Passed arguments must be strings")
 
-        if account and password:
-            data = {"username": account, "password": password, "action_login": "Log In"}
-            page, newurl = getPage (self.login_page, data)
-            page, newurl = getPage (self.page_url)
-            data = {"next_url": self.page_url, "action_confirm": "Confirm Birth Date"}
-            page, newurl = getPage (newurl, data)
-            return page, newurl
-        elif account or password:
-           raise TypeError ("When passing arguments, account name and password must be defined")
-
         page, newurl = getPage (self.page_url)
+
+        # If login information is required,
+        # use the information used for the embed player
         if self.login_required_re.match (newurl):
-            raise self.__class__.LoginRequired ("You must be logged in to access this video")
+            self.requires_login = True
+            embed_info_url = self.__class__.video_embed_info_url % self.video_id
+            page, newurl = getPage (embed_info_url)
+            page = urllib2.unquote (page)
+
         return page, newurl
+
+
+    def _parseTitle (self, page_dump):
+        if self.requires_login:
+            match = self.__class__.video_embed_title_re.search (page_dump)
+            if match:
+                title = match.group (1)
+                title = title.replace ("+", " ")
+            else:
+                raise self.__class__.UnknownTitle ("Could not find the title from embed information")
+
+        else:
+            match = self.video_title_re.search (page_dump)
+            if not match:
+                raise self.__class__.UnknownTitle ("Could not find the title from page")
+            else:
+                title = match.group (1)
+
+        return title
+
 
     def _parsePlayerCommands (self, page_dump):
         """Get the commands needed to get the video player"""
-        match = self.video_url_params_re.search (page_dump)
-        if not match:
-            raise self.__class__.InvalidCommands ("Could not find flash player commands")
+        if self.requires_login:
+            newmatch = self.__class__.video_embed_video_re.search (page_dump)
+#            print page_dump
+            if newmatch:
+#                print newmatch.groups ()
+                commands = newmatch.groups ()
+            else:
+                raise self.__class__.InvalidCommands ("Could not find token from embed player")
+        else:
+            match = self.video_url_params_re.search (page_dump)
+            if not match:
+                raise self.__class__.InvalidCommands ("Could not find flash player commands")
 
-        commands = match.groups ()
+            commands = match.groups ()
         return commands
+
 
     def _parseRealURL (self, commands):
         """Get the real url for the video"""
+        token = commands[0]
         # First, attempt to get a high quality version
-        secondary_url = self.video_url_real_high_str % (self.video_id, commands[0])
+        secondary_url = self.video_url_real_high_str % (self.video_id, token)
         obtained_url = False
         content_type = self.embed_file_type
+
         try:
-            page, real_url, content_type = getPage (secondary_url, read_page=False, get_headers=True)
+            page, real_url, headers = getPage (secondary_url, read_page=False, get_headers=True)
             obtained_url = True
         except PageNotFound, e:
             pass
 
         # Get standard quality if no high quality video exists
         if not obtained_url:
-            secondary_url = self.video_url_real_str % (self.video_id, commands[0])
-            page, real_url = getPage (secondary_url, read_page=False)
+            secondary_url = self.video_url_real_str % (self.video_id, token)
+            page, real_url, headers = getPage (secondary_url, read_page=False, get_headers=True)
 
         # Test should not be necessary if it got this far
-        if content_type["Content-Type"] not in ["video/flv", "video/mp4"]:
-            raise self.__class__.URLBuildFailed ("An unexpected content type was found. Found: %s" % content_type)
+        if headers["Content-Type"] not in ["video/flv", "video/x-flv", "video/mp4"]:
+            raise self.__class__.URLBuildFailed ("An unexpected content type was found. Found: %s" % headers["Content-Type"])
         else:
-            self.embed_file_type = content_type["Content-Type"]
+            self.embed_file_type = headers["Content-Type"]
 
         self.real_url = secondary_url
         return secondary_url
