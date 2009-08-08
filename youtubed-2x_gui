@@ -430,11 +430,15 @@ class QueueManager (object):
 
     def save_session (self):
         items = []
-        for element in self.dude.keys ():
-            thread = self.dude[element]["thread"]
 
+        def add_items (model, path, iter, item_list):
+            url = model.get_value (iter, 0)
+            thread_id = self.getThreadId (url)
+            thread = self.getVideoThread (thread_id)
             if thread and (thread.status == thread.__class__.PAUSED or thread.status == thread.__class__.DONE or thread.status == thread.__class__.CANCELLED):
-                items.append ([thread.video, thread.status])
+                item_list.append ([thread.video, thread.status])
+
+        self.tree_model.foreach (add_items, items)
 
 #        print items
         new_session = SessionInfo ()
