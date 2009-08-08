@@ -479,7 +479,7 @@ class VideoDownloadThread (Thread):
     def run (self):
         try:
             self.download_id = video_queue.add_try (self)
-        except video_queue.InQueue as exception:
+        except video_queue.__class__.InQueue as exception:
             gtk.gdk.threads_enter ()
             video_queue.send ("unblock-ui")
             gtk.gdk.threads_leave ()
