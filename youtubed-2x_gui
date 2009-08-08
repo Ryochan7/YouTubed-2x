@@ -203,6 +203,10 @@ class QueueManager (object):
     signals = ["progress-update", "info-changed", "block-ui", "unblock-ui"]
     UPDATE_INTERVAL = .5 # In seconds
 
+    class InQueue (Exception):
+        pass
+
+
     def __init__ (self, sem_limit=4):
         self.observers = {}
         for signal in self.__class__.signals:
@@ -247,6 +251,12 @@ class QueueManager (object):
 
     def add_try (self, thread):
         self.lock.acquire ()
+        # Check if video has already been added
+        possible_id = self.getThreadId (thread.video.parser.page_url)
+        if possible_id != None:
+            self.lock.release ()
+            raise self.__class__.InQueue ("URL has already been added to queue.")
+
         id = self.next_status_id
         self.next_status_id += 1
         gtk.gdk.threads_enter ()
@@ -423,9 +433,6 @@ class QueueManager (object):
             youtube_video.parser.setEmbedType (item[7])
             video_queue.send ("block-ui")
             VideoDownloadThread (youtube_video, item[9]).start ()
-#            if item[9]: VideoDownloadThread (youtube_video, VideoDownloadThread.DONE).start ()
-#            else: VideoDownloadThread (youtube_video).start ()
-
 
 
     def save_session (self):
@@ -448,7 +455,6 @@ class QueueManager (object):
             new_session.save ()
         else:
             new_session.delete ()
-        
 
 
 class VideoDownloadThread (Thread):
@@ -470,9 +476,15 @@ class VideoDownloadThread (Thread):
             raise Exception ("'%s' is not a valid status" % status)
 
 
-
     def run (self):
-        self.download_id = video_queue.add_try (self)
+        try:
+            self.download_id = video_queue.add_try (self)
+        except video_queue.InQueue as exception:
+            gtk.gdk.threads_enter ()
+            video_queue.send ("unblock-ui")
+            gtk.gdk.threads_leave ()
+            return
+
         if self.status == self.__class__.DONE:
             video_queue.update_status (self.download_id, title=self.video.title, url=self.video.parser.page_url, force_update=True)
             self._finish_thread ()
@@ -482,7 +494,6 @@ class VideoDownloadThread (Thread):
             self._finish_thread ("Cancelled", False)
             return
             
-
         if not self.video.title and not self.video.real_url:
             self.status = self.__class__.PARSING
             status, message = self._parsePage ()
@@ -507,7 +518,6 @@ class VideoDownloadThread (Thread):
             video_queue.update_status (self.download_id, title=self.video.title, url=self.video.parser.page_url, progress=0, size=downloader.FileDownloader.humanizeSize (self.video.getFileSize ()), status="Queued", force_update=True)
         else:
             video_queue.update_status (self.download_id, title=self.video.title, url=self.video.parser.page_url, progress=0, size="Unknown", status="Queued", force_update=True)
-
 
         auto_download = app_settings.auto_download
         if auto_download:
@@ -544,7 +554,6 @@ class VideoDownloadThread (Thread):
         video_queue.send ("unblock-ui")
         gtk.gdk.threads_leave ()
 
-
         bitrate = 0
         if app_settings.format in VideoItem.AUDIO_FORMATS:
             bitrate = app_settings.abitrate
@@ -569,7 +578,6 @@ class VideoDownloadThread (Thread):
 
         transcode = app_settings.transcode
         keep_flv_files = app_settings.keep_flv_files
-
 
         # At this point, self._has_sem will definitely be True
         status = self._startWget ()
