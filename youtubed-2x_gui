@@ -520,10 +520,14 @@ class VideoDownloadThread (Thread):
             video_queue.update_status (self.download_id, title=self.video.title, url=self.video.parser.page_url, progress=0, size="Unknown", status="Queued", force_update=True)
 
         auto_download = app_settings.auto_download
+        display_waiting = False
         if auto_download:
             self._has_sem = video_queue.acquire_sem ()
             if self._has_sem:
                 self.status = self.__class__.READY
+            else:
+                video_queue.update_status (self.download_id, status="Waiting", force_update=True)
+                display_waiting = True
 
         gtk.gdk.threads_enter ()
         video_queue.send ("unblock-ui")
@@ -539,8 +543,13 @@ class VideoDownloadThread (Thread):
         # This loop will likely be entered when a user starts
         # a download manually. Make sure to obey process limit
         while not self._has_sem and self.status != self.__class__.CANCELING:
+            if not display_waiting:
+                video_queue.update_status (self.download_id, status="Waiting", force_update=True)
+                display_waiting = True
+
             time.sleep (self.__class__.SLEEP_HOLD)
             self._has_sem = video_queue.acquire_sem ()
+
 
         if self.status == self.__class__.CANCELING:
             self.status = self.__class__.CANCELLED
