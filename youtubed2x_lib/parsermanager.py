@@ -1,7 +1,8 @@
+import os, sys
 from urllib2 import urlparse
 import datetime
 import parsers
-from other import WINDOWS
+from other import UserDirectoryIndex
 from videoitem import VideoItem
 
 
@@ -13,16 +14,21 @@ class InvalidParser (Exception):
 
 
 class ParserManager (object):
-    def __init__ (self):
-        self.parsers = {}
-        self._app_parsers_list = []
-        self._user_parsers_list = []
-        self._register_app_parsers ()
-        self._register_user_parsers ()
-#        print self.parsers
+    parsers = {}
+    _app_parsers_list = []
+    _user_parsers_list = []
+
+    @classmethod
+    def importParsers (cls):
+        cls.parsers = {}
+        cls._app_parsers_list = []
+        cls._user_parsers_list = []
+        cls._register_app_parsers ()
+        cls._register_user_parsers ()
 
 
-    def register (self, parser):
+    @classmethod
+    def register (cls, parser, add_to_list=False):
         if not issubclass (parser, parsers.Parser_Helper):
             raise TypeError ("A subclass of Parser_Helper was not passed")
 
@@ -30,12 +36,25 @@ class ParserManager (object):
         version = getattr (parser, "version", "")
         if host_str and isinstance (host_str, str) and isinstance (version, datetime.date):
             identifier = host_str
-            if identifier in self.parsers and self.parsers[identifier].version >= parser.version:
+            if identifier in cls.parsers and cls.parsers[identifier].version >= parser.version:
                 # Override parser with newer version
-                self.parsers.update ({identifier: parser})
-            elif identifier not in self.parsers:
+                cls.parsers.update ({identifier: parser})
+                if add_to_list:
+                    parser_found = False
+                    index = 0
+                    for i, site_parser in enumerate (cls._user_parsers_list):
+                        if parser.host_str == site_parser.host_str:
+                            parser_found = True
+                            index = i
+
+                    if parser_found:
+                        cls._user_parsers_list[index] = parser
+                    else:
+                        cls._user_parsers_list.append (parser)
+            elif identifier not in cls.parsers:
                 # New parser being added
-                self.parsers.update ({identifier: parser})
+                cls.parsers.update ({identifier: parser})
+                if add_to_list: cls._user_parsers_list.append (site_parser)
             else:
                 # A newer parser is already registered
                 raise AlreadyRegistered ()
@@ -43,9 +62,8 @@ class ParserManager (object):
             raise InvalidParser ()
 
 
-    def _register_app_parsers (self):
-        import os, sys
-
+    @classmethod
+    def _register_app_parsers (cls):
         # Importing modules from library.zip made with Py2exe
         if hasattr (parsers, "__loader__"):
             zipfiles = parsers.__loader__._files
@@ -77,31 +95,19 @@ class ParserManager (object):
 
             if site_parser and issubclass (site_parser, parsers.Parser_Helper):
                 try:
-                    self.register (site_parser)
+                    cls.register (site_parser)
                 except AlreadyRegistered as exception:
                     print "A newer version of parser %s has already been registered" % possible_module
                 except InvalidParser as exception:
                     print >> sys.stderr, "Parser %s is invalid." % possible_module
                 else:
-                    self._app_parsers_list.append (site_parser)
+                    cls._app_parsers_list.append (site_parser)
 #                print site_parser
 
 
-    def _register_user_parsers (self):
-        import os, sys
-        home_dir = os.path.expanduser ("~")
-        if WINDOWS:
-            # Useful for Windows Vista and Windows 7
-            if "LOCALAPPDATA" in os.environ:
-                config_dir = os.path.join (os.environ["LOCALAPPDATA"], "youtubed-2x")
-            # Useful for Windows XP and below
-            elif "APPDATA" in os.environ:
-                config_dir = os.path.join (os.environ["APPDATA"], "youtubed-2x")
-            else:
-                raise Exception ("LOCALAPPDATA nor APPDATA specified. Should not be here")
-        else:
-            config_dir = os.path.join (home_dir, ".youtubed-2x")
-
+    @classmethod
+    def _register_user_parsers (cls):
+        config_dir = UserDirectoryIndex.config_dir
         user_parser_dir = os.path.join (config_dir, "parsers")
 
         if not os.path.exists (config_dir):
@@ -154,38 +160,39 @@ class ParserManager (object):
 
             if site_parser and issubclass (site_parser, parsers.Parser_Helper):
                 try:
-                    self.register (site_parser)
+                    cls.register (site_parser)
                 except AlreadyRegistered as exception:
                     print "A newer version of parser %s has already been registered" % possible_module
                 except InvalidParser as exception:
                     print >> sys.stderr, "Parser %s is invalid." % possible_module
                 else:
-                    self._user_parsers_list.append (site_parser)
+                    cls._user_parsers_list.append (site_parser)
 #                print site_parser
 
         # Custom parsers loaded. Remove user_parser_dir
         # directory from sys.path
         del sys.path[1]
 
-    
-    def validateURL (self, full_url, video_item=True):
+
+    @classmethod
+    def validateURL (cls, full_url, video_item=True):
         """Make sure the url passed is in a valid form and return a video parser object"""
         if not isinstance (full_url, str):
             raise TypeError ("Argument must be a string")
 
         spliturl = urlparse.urlsplit (full_url)
         hostname = spliturl.hostname
-#        print len (self.parsers.keys ())
+#        print len (cls.parsers.keys ())
 
         if not hostname:
             return None
         elif hostname.startswith ("www."):
             hostname = hostname.lstrip ("www.")
 
-        if hostname not in self.parsers:
+        if hostname not in cls.parsers:
             return None
 
-        page_parser = self.parsers[hostname].checkURL (full_url)
+        page_parser = cls.parsers[hostname].checkURL (full_url)
         if page_parser and video_item:
             youtube_video = VideoItem (page_parser)
         elif page_parser:
@@ -196,11 +203,9 @@ class ParserManager (object):
         return youtube_video
 
 
-    def get_official_parsers (self):
-        parser_list = list (self._app_parsers_list)
+    @classmethod
+    def get_official_parsers (cls):
+        parser_list = list (cls._app_parsers_list)
         return parser_list
-
-
-parser_manager = ParserManager ()
 
 

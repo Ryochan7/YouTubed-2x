@@ -2,24 +2,12 @@ import os
 import sys
 import ConfigParser
 from videoitem import VideoItem
-from other import WINDOWS
+from other import UserDirectoryIndex
 
 
 class SessionInfo (object):
     def __init__ (self):
-        self.config_dir = ""
-        if WINDOWS:
-            # Used with Windows Vista and Windows 7
-            if "LOCALAPPDATA" in os.environ:
-                self.config_dir = os.path.join (os.environ["LOCALAPPDATA"], "youtubed-2x")
-            # Useful for Windows XP and below
-            elif "APPDATA" in os.environ:
-                self.config_dir = os.path.join (os.environ["APPDATA"], "youtubed-2x")
-            else:
-                raise Exception ("LOCALAPPDATA nor APPDATA specified. Should not be here.")
-        else:
-            self.config_dir = os.path.join (os.path.expanduser ("~"), ".youtubed-2x")
-
+        self.config_dir = UserDirectoryIndex.config_dir
         self.session_file_location = os.path.join (self.config_dir, "session_info.conf")
         self.item_list = []
 

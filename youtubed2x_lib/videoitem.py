@@ -57,7 +57,7 @@ class VideoItem (object):
             # If no data was passed, assume that the portal is forwarding to a new site
             if not page:
                 # Check if the portal forwarded to a site that is supported
-                from parsermanager import parser_manager
+                from parsermanager import ParserManager as parser_manager
                 parser = parser_manager.validateURL (newurl, False)
                 if not parser:
                     raise self.parser.InvalidPortal ("The portal forwarded to a site not supported by this application")

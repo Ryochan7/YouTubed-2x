@@ -18,6 +18,7 @@ from youtubed2x_lib.other import VERSION, APP_NAME, PageNotFound, WINDOWS, set_p
 import youtubed2x_lib.settings as settings
 import youtubed2x_lib.download as downloader
 from youtubed2x_lib.sessioninfo import SessionInfo
+from youtubed2x_lib.parsermanager import ParserManager as parser_manager
 
 
 if WINDOWS:
@@ -1505,8 +1506,6 @@ if __name__ == '__main__':
         sys.stdout = open ("log.txt", "w")
         sys.stderr = open ("errors.log", "w")
 
-    from youtubed2x_lib.parsermanager import parser_manager
-
     media_paths = [
             # Can't use __file__ here. Py2exe does not like it
             os.path.join (os.path.dirname (sys.argv[0]), "data"), # Running locally
@@ -1528,6 +1527,7 @@ if __name__ == '__main__':
         print >> sys.stderr, "%s.\nReverting to default settings." % exception
         app_settings.setDefaults ()
 
+    parser_manager.importParsers ()
     video_queue = QueueManager (sem_limit=app_settings.process_limit)
     newbie = YouTubeDownloader ()
     prop_win = PropertiesWindow (newbie.gladefile)

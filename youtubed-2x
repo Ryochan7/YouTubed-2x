@@ -29,7 +29,7 @@ import subprocess
 import time
 from optparse import OptionParser
 from youtubed2x_lib.videoitem import VideoItem
-from youtubed2x_lib.parsermanager import parser_manager
+from youtubed2x_lib.parsermanager import ParserManager as parser_manager
 from youtubed2x_lib.other import VERSION, PageNotFound, APP_NAME, WINDOWS
 from youtubed2x_lib.download import FileDownloader
 
@@ -111,6 +111,8 @@ if not os.path.isdir (videos_dir):
         print >> sys.stderr, "Could not make videos directory. Exiting."
         sys.exit (42)
 
+
+parser_manager.importParsers ()
 #### Iterate through the list of URLs and download  ####
 #### and transcode any specified videos             ####
 for full_url in command_args:

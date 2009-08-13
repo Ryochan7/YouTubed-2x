@@ -2,7 +2,7 @@ import os
 import sys
 import ConfigParser
 from videoitem import VideoItem
-from other import WINDOWS
+from other import WINDOWS, UserDirectoryIndex
 
 class Settings (object):
 
@@ -128,17 +128,7 @@ class Settings (object):
         if not os.path.isdir (self.output_dir):
             os.mkdir (self.output_dir)
 
-        if WINDOWS:
-            # Used with Windows Vista and Windows 7
-            if "LOCALAPPDATA" in os.environ:
-                self.config_dir = os.path.join (os.environ["LOCALAPPDATA"], "youtubed-2x")
-            # Useful for Windows XP and below
-            elif "APPDATA" in os.environ:
-                self.config_dir = os.path.join (os.environ["APPDATA"], "youtubed-2x")
-            else:
-                raise Exception ("LOCALAPPDATA nor APPDATA specified. Should not be here.")
-        else:
-            self.config_dir = os.path.join (os.path.expanduser ("~"), ".youtubed-2x")
+        self.config_dir = UserDirectoryIndex.config_dir
         self.config_file_location = os.path.join (self.config_dir, "config.conf")
 
         possible_paths = (os.path.join (sys.prefix, "local", "bin"), os.path.join (sys.prefix, "bin"),)

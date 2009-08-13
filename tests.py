@@ -1,5 +1,5 @@
 import unittest
-from youtubed2x_lib.parsermanager import parser_manager
+from youtubed2x_lib.parsermanager import ParserManager as parser_manager
 import youtubed2x_lib.other as other
 
 testURLs = ("http://www.youtube.com/watch?v=EjI4e3QEoPQ",
@@ -9,23 +9,24 @@ testURLs = ("http://www.youtube.com/watch?v=EjI4e3QEoPQ",
 "http://www.veoh.com/videos/v157834969D2enpjt", # Check Veoh portal support
 "http://www.youporn.com/watch/263247/little-hottie-decides-to-go-all-the-way-23/",
 "http://video.google.com/videoplay?docid=-6375437977488723034&ei=pV4RSaeKEZnc-AHktpyMCQ&q=ghost+opera",
-"http://www.metacafe.com/watch/186757/ayumi_hamasaki/",
-"http://www.pornhub.com/view_video.php?viewkey=825c2be0a2800b5ae50f",
+#"http://www.metacafe.com/watch/186757/ayumi_hamasaki/",
+#"http://www.pornhub.com/view_video.php?viewkey=825c2be0a2800b5ae50f",
 "http://www.tube8.com/hardcore/amazing-hentai-lesbian-scene/23954/",
 "http://www.myvideo.de/watch/3026730/Ayumi_Hamasaki_Voyage",
 "http://vids.myspace.com/index.cfm?fuseaction=vids.individual&videoid=19941883&searchid=a8a1777e-b225-4199-9787-e51cd8f2df2c",
 "http://www.guba.com/watch/3000017203?duration_step=0&fields=23&filter_tiny=0&pp=40&query=kanon%202006&sb=10&set=-1&sf=0&size_step=0&o=1&sample=1225875586:e1ebff36f1214e71528291dcb086a919a88ca379",
-"http://www.dailymotion.com/relevance/search/kanon%2B2006/video/x2myny_amv-kanon_school",
+#"http://www.dailymotion.com/relevance/search/kanon%2B2006/video/x2myny_amv-kanon_school",
 "http://www.giantbomb.com/news/ogle-the-final-fantasy-xiii-trailer-repeatedly/872/",
 "http://www.porn2pc.com/9035", # Example points to RedTube-style URL
 "http://www.screwattack.com/AVGN/JaguarPart1",
 "http://www.gametrailers.com/video/angry-video-screwattack/37368",
-"http://www.escapistmagazine.com/videos/view/zero-punctuation/789-Prototype",
+#"http://www.escapistmagazine.com/videos/view/zero-punctuation/789-Prototype",
 "http://video.yahoo.com/watch/125292/",
 )
 
 
 class ParseTest (unittest.TestCase):
+    parser_manager.importParsers ()
 
     def testUrlValidation (self):
         """Test the regular expressions for each parser"""
