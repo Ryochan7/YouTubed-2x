@@ -1,4 +1,4 @@
-import sys
+import os, sys
 import urllib, urllib2
 import cookielib
 import socket
@@ -7,8 +7,27 @@ import StringIO
 import re
 WINDOWS = (sys.platform == "win32")
 
-class PageNotFound (Exception):
-    pass
+
+class PageNotFound (Exception): pass
+
+
+class UserDirectoryIndex (object):
+    home_dir = data_dir = os.path.expanduser ("~")
+    config_dir = ""
+
+    if WINDOWS:
+        # Useful for Windows Vista and Windows 7
+        if "LOCALAPPDATA" in os.environ:
+            data_dir = os.environ["LOCALAPPDATA"]
+            config_dir = os.path.join (data_dir, "youtubed-2x")
+        # Useful for Windows XP and below
+        elif "APPDATA" in os.environ:
+            data_dir = os.environ["APPDATA"]
+            config_dir = os.path.join (data_dir, "youtubed-2x")
+        else:
+            raise Exception ("LOCALAPPDATA nor APPDATA specified. Should not be here")
+    else:
+        config_dir = os.path.join (data_dir, ".youtubed-2x")
 
 
 def getPage (url, data=None, read_page=True, get_headers=False, additional_headers={}):
