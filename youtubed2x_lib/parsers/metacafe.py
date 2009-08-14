@@ -1,5 +1,6 @@
 import re
 import datetime
+from urllib2 import unquote
 from youtubed2x_lib.parsers import Parser_Helper
 
 
@@ -8,16 +9,15 @@ class Metacafe_Parser (Parser_Helper):
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?metacafe\.com/watch/(\S+)/(?:\w+)?')
     video_url_str = 'http://www.metacafe.com/watch/%s/'
     video_title_re = re.compile (r'<title>([^<]*) - Video</title>')
-    video_url_params_re = re.compile (r"mediaURL=(\S+)&gdaKey=(\w+)&postRollContentURL=")
+    video_url_params_re = re.compile (r"mediaURL=(\S+)&postRollContentURL=")
     parser_type = "Metacafe"
     host_str = "metacafe.com"
-    version = datetime.date (2009, 7, 4)
+    version = datetime.date (2009, 8, 14)
 
 
     def _parseRealURL (self, commands):
         """Get the real url for the video"""
-        from urllib2 import unquote
-        real_url = "%s?__gda__=%s" % (unquote (commands[0]), commands[1])
+        real_url = "%s" % unquote (commands[0])
         return real_url
 
 
