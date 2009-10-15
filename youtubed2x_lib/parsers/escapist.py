@@ -1,5 +1,4 @@
 import re
-import hashlib
 from urllib2 import unquote
 import datetime
 from youtubed2x_lib.parsers import Parser_Helper, getPage
@@ -9,27 +8,21 @@ class Escapist_Parser (Parser_Helper):
     """Parser for The Escapist pages. Updated 07/04/2009"""
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?escapistmagazine\.com/videos/view/(\S+)')
     video_url_str = 'http://www.escapistmagazine.com/videos/view/%s'
-    video_url_secondary_str = "http://www.themis-media.com/global/castfire/m4v/%s"
-    video_title_re = re.compile (r'<div class=\'headline\'>([^<]*)</div>')
-    video_url_params_re = re.compile (r'&quot;url&quot;:(\d+),&quot;')
-    video_url_real_str_re = re.compile (r'^url=(\S+)?')
-    post_vars = {"version": "ThemisMedia1.2", "format": ""}
+    video_title_re = re.compile (r'<title>The Escapist : Video Galleries : ([^<]*)</title>')
+    video_url_params_re = re.compile (r'&quot;config=(\S+)%3Fembed%3D1&quot;')
+    video_url_real_str_re = re.compile (r'},{\'url\':\'(\S+)\',\'scaling')
     parser_type = "The Escapist"
     host_str = "escapistmagazine.com"
-    version = datetime.date (2009, 7, 4)
+    version = datetime.date (2009, 10, 14)
 
 
     def _parseRealURL (self, commands):
         """Get the real url for the video"""
-        secondary_url = self.__class__.video_url_secondary_str % commands[0]
-        video_hash = hashlib.md5 ("Video %s Hash" % commands[0]).hexdigest ()
-        post_vars = self.__class__.post_vars.copy ()
-        post_vars["format"] = video_hash
-        # Attempt to get URL variable for flv video
-        page, newurl = getPage (secondary_url, post_vars)
-        match = self.__class__.video_url_real_str_re.match (page)
+        secondary_url = commands[0]
+        page, newurl = getPage (secondary_url)
+        match = self.__class__.video_url_real_str_re.search (page)
         if not match:
-            raise self.__class__.URLBuildFailed ("Redirect from \"%s\" did not yield a video URL" % secondary_url)
+            raise self.__class__.URLBuildFailed ("Video URL could not be found at page \"%s\"" % secondary_url)
         else:
             real_url = unquote (match.group (1))
 

@@ -149,7 +149,9 @@ class ParserManager (object):
                 print >> sys.stderr, "File \"%s\" could not be imported" % possible_module
                 continue
             except Exception as exception:
-                print >> sys.stderr, "%s" % exception
+                print >> sys.stderr, "File \"%s\" could not be imported. Printing traceback:\n" % possible_module
+                import traceback
+                traceback.print_exc ()
                 continue
 
             module_contents = dir (parser_module)

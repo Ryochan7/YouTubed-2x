@@ -17,7 +17,7 @@ from youtubed2x_lib.videoitem import VideoItem
 from youtubed2x_lib.other import VERSION, APP_NAME, PageNotFound, WINDOWS, set_proxy, remove_proxy
 import youtubed2x_lib.settings as settings
 import youtubed2x_lib.download as downloader
-from youtubed2x_lib.sessioninfo import SessionInfo
+from youtubed2x_lib.sessioninfo import SessionInfo, SessionItem
 from youtubed2x_lib.parsermanager import ParserManager as parser_manager
 
 
@@ -423,17 +423,9 @@ class QueueManager (object):
         items = restore_session.read ()
 #        print items
         for item in items:
-            youtube_video = parser_manager.validateURL (item[1])
-            youtube_video.setTitle (item[0])
-            youtube_video.setRealUrl (item[2])
-            youtube_video.setFlvFile (item[3])
-            youtube_video.setOutputFile (item[4])
-            youtube_video.setFileFormat (item[5])
-            youtube_video.setOutputRes (item[6])
-            youtube_video.setFileSize (item[8])
-            youtube_video.parser.setEmbedType (item[7])
+            youtube_video = item.video
             video_queue.send ("block-ui")
-            VideoDownloadThread (youtube_video, item[9]).start ()
+            VideoDownloadThread (youtube_video, item.status).start ()
 
 
     def save_session (self):
@@ -444,7 +436,7 @@ class QueueManager (object):
             thread_id = self.getThreadId (url)
             thread = self.getVideoThread (thread_id)
             if thread and (thread.status == thread.__class__.PAUSED or thread.status == thread.__class__.DONE or thread.status == thread.__class__.CANCELLED):
-                item_list.append ([thread.video, thread.status])
+                 item_list.append (SessionItem (thread.video, thread.status))
 
         self.tree_model.foreach (add_items, items)
 
@@ -452,7 +444,7 @@ class QueueManager (object):
         new_session = SessionInfo ()
         if items:
             for item in items:
-                new_session.addItem (item[0], item[1])
+                new_session.addItem (item)
             new_session.save ()
         else:
             new_session.delete ()
