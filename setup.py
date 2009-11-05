@@ -11,7 +11,7 @@ stuff = {
     "author": "Travis Nickles",
     "url": "http://ryochan7.webfactional.com/",
     "scripts": ["youtubed-2x", "youtubed-2x_gui"],
-    "packages": ["youtubed2x_lib", "youtubed2x_lib.parsers"],
+    "packages": ["youtubed2x_lib", "youtubed2x_lib.parsers", "youtubed2x_lib.ui"],
 
     "data_files": [(os.path.join ("share", "youtubed-2x"), [os.path.join ("data", "youtubed-2x.glade")]),
                 (os.path.join ("share", "applications"), [os.path.join ("data", "youtubed2x.desktop")])],
