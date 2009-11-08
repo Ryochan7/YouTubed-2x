@@ -9,7 +9,9 @@ class VideoItemMenuController (object):
         self.ui = ui
         self.video_queue = video_queue
 
-        dic = {"on_copypageurl_menuitem_activate": self.copy_url_selection, "on_copyvidurl_menuitem_activate": self.copy_video_url_selection, "on_playvideo_menuitem_activate": self.playvideo_selection}
+        dic = {"on_copypageurl_menuitem_activate": self.copy_url_selection, "on_copyvidurl_menuitem_activate": self.copy_video_url_selection,
+               "on_playvideo_menuitem_activate": self.playvideo_selection, "on_playvideoout_menuitem_activate": self.playoutput_selection,
+               "on_dir_menuitem_activate": self.open_output_directory}
         self.ui.base.signal_autoconnect (dic)
 
 
@@ -46,9 +48,8 @@ class VideoItemMenuController (object):
         url = model.get_value (selection, 0)
         thread_id = self.video_queue.getThreadId (url)
         thread = self.video_queue.getVideoThread (thread_id)
-        if os.path.exists (thread.video.avi_file):
-            video_file = thread.video.avi_file
-        elif os.path.exists (thread.video.flv_file):
+
+        if os.path.exists (thread.video.flv_file):
             video_file = thread.video.flv_file
         else:
             video_file = None
@@ -66,5 +67,50 @@ class VideoItemMenuController (object):
 
     def popup (self, *args):
         self.ui.treeview_menu1.popup (*args)
+
+
+    def playoutput_selection (self, widget):
+        tree = self.ui.treeview.get_selection ()
+        model, selection = tree.get_selected ()
+        if not selection:
+            return
+
+        url = model.get_value (selection, 0)
+        thread_id = self.video_queue.getThreadId (url)
+        thread = self.video_queue.getVideoThread (thread_id)
+        if os.path.exists (thread.video.avi_file):
+            video_file = thread.video.avi_file
+        else:
+            video_file = None
+
+        if video_file:
+            if WINDOWS:
+                subprocess.Popen (["start", "", video_file], shell=True)
+            else:
+                subprocess.Popen (["xdg-open", video_file])
+
+
+    def open_output_directory (self, widget):
+        tree = self.ui.treeview.get_selection ()
+        model, selection = tree.get_selected ()
+        if not selection:
+            return
+
+        url = model.get_value (selection, 0)
+        thread_id = self.video_queue.getThreadId (url)
+        thread = self.video_queue.getVideoThread (thread_id)
+        if os.path.exists (thread.video.flv_file):
+            video_file = thread.video.flv_file
+        elif os.path.exists (thread.video.avi_file):
+            video_file = thread.video.avi_file
+        else:
+            video_file = None
+
+        if video_file:
+            directory = video_file.rsplit (os.sep, 1)[0]
+            if WINDOWS:
+                subprocess.Popen (["start", "", directory], shell=True)
+            else:
+                subprocess.Popen (["xdg-open", directory])
 
 

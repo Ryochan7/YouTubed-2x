@@ -11,7 +11,7 @@ class YouTube_Parser (Parser_Helper):
     video_url_str = 'http://www.youtube.com/watch?v=%s'
     video_url_real_str = 'http://www.youtube.com/get_video?video_id=%s&t=%s'
     video_url_real_high_str = "%s&fmt=18" % video_url_real_str
-    video_title_re = re.compile (r'<title>YouTube - ([^<]*)</title>')
+    video_title_re = re.compile (r'<link rel="alternate" type="application/json\+oembed" href="(?:.*)" title="([^<]*)"(?:[ ]+)?/>')
     video_url_params_re = re.compile (r', "t": "([^"]+)"')
     login_required_re = re.compile (r"^http://www.youtube.com/verify_age\?(?:&)?next_url=/watch")
 
@@ -23,7 +23,7 @@ class YouTube_Parser (Parser_Helper):
     embed_file_extensions = {"video/flv": "flv", "video/x-flv": "flv", "video/mp4": "mp4"}
     parser_type = "YouTube"
     host_str = "youtube.com"
-    version = datetime.date (2009, 8, 7)
+    version = datetime.date (2009, 11, 7)
 
 
     def __init__ (self, video_id):

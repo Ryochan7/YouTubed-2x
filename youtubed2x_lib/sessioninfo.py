@@ -81,8 +81,6 @@ class SessionInfo (object):
             print >> sys.stderr, "Could not write session file."
             return
 
-
-        file = open (self.session_file_location, 'w')
         config = ConfigParser.ConfigParser ()
         
         for i, listitem in enumerate (self.item_list):

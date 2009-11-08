@@ -1674,7 +1674,7 @@ Ricardo Garcia Gonzalez - Author of youtube-dl and pornotube-dl</property>
     <property name="visible">True</property>
     <child>
       <widget class="GtkImageMenuItem" id="playvideo_menuitem">
-        <property name="label" translatable="yes">Play Video</property>
+        <property name="label" translatable="yes">Play Input Video</property>
         <property name="visible">True</property>
         <property name="use_stock">False</property>
         <signal name="activate" handler="on_playvideo_menuitem_activate"/>
@@ -1682,6 +1682,34 @@ Ricardo Garcia Gonzalez - Author of youtube-dl and pornotube-dl</property>
           <widget class="GtkImage" id="image2">
             <property name="visible">True</property>
             <property name="stock">gtk-media-play</property>
+          </widget>
+        </child>
+      </widget>
+    </child>
+    <child>
+      <widget class="GtkImageMenuItem" id="playvideoout_menuitem">
+        <property name="label">Play Output Video</property>
+        <property name="visible">True</property>
+        <property name="use_stock">False</property>
+        <signal name="activate" handler="on_playvideoout_menuitem_activate"/>
+        <child internal-child="image">
+          <widget class="GtkImage" id="image1">
+            <property name="visible">True</property>
+            <property name="stock">gtk-media-play</property>
+          </widget>
+        </child>
+      </widget>
+    </child>
+    <child>
+      <widget class="GtkImageMenuItem" id="dir_menuitem">
+        <property name="label">Open Directory</property>
+        <property name="visible">True</property>
+        <property name="use_stock">False</property>
+        <signal name="activate" handler="on_dir_menuitem_activate"/>
+        <child internal-child="image">
+          <widget class="GtkImage" id="image4">
+            <property name="visible">True</property>
+            <property name="stock">gtk-open</property>
           </widget>
         </child>
       </widget>

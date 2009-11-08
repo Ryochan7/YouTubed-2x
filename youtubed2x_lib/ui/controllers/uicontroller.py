@@ -1,3 +1,4 @@
+import os
 import gtk
 import webbrowser
 import gobject
@@ -372,10 +373,28 @@ class UiController (object):
             popup = VideoItemMenu (self.ui.gladefile, self.ui.treeview1)
             popup_cont = VideoItemMenuController (popup, self.video_queue)
 
+            # Move this logic to VideoItemMenuController class
             if thread.status == thread.__class__.DONE:
-                popup_cont.get_children ()[0].set_sensitive (True)
+                video_file_input = thread.video.flv_file
+                video_file_output = thread.video.avi_file
+                if os.path.exists (video_file_input):
+                    popup_cont.get_children ()[0].set_sensitive (True)
+                else:
+                    popup_cont.get_children ()[0].set_sensitive (False)
+
+                if os.path.exists (video_file_output):
+                    popup_cont.get_children ()[1].set_sensitive (True)
+                else:
+                    popup_cont.get_children ()[1].set_sensitive (False)
+
+                if video_file_input or video_file_output:
+                    popup_cont.get_children ()[2].set_sensitive (True)
+                else:
+                    popup_cont.get_children ()[2].set_sensitive (False)
             else:
                 popup_cont.get_children ()[0].set_sensitive (False)
+                popup_cont.get_children ()[1].set_sensitive (False)
+                popup_cont.get_children ()[2].set_sensitive (False)
 
             popup_cont.popup (None, None, None, event.button, event.time)
 
