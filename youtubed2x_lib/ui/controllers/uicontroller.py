@@ -11,15 +11,19 @@ from videoitemmenucontroller import VideoItemMenuController
 
 
 class UiController (object):
+    GTK_RIGHT_CLICK_BUTTON = 3
+
     def __init__ (self, ui, app_settings, video_queue, parser_manager, prop_cont):
         self.ui = ui
         self.app_settings = app_settings
         self.video_queue = video_queue
         self.parser_manager = parser_manager
         self.prop_cont = prop_cont
+        self._treeview_rightclick_event = None
 
         gtk.about_dialog_set_url_hook (self.open_site)
         self.ui.treeview1.connect ("button-press-event", self.treeview_right)
+        self.ui.treeview1.connect ("cursor-changed", self.treeview_right2)
 
         dic = {"on_window1_delete_event": self.quit_app, "on_quit1_activate": self.quit_app, "on_preferences2_activate": self.show_preferences,
                "on_about1_activate": self.show_about_window, "on_aboutdialog1_response": self.hide_about_window, "on_aboutdialog1_delete_event": self.keep_about_window,
@@ -360,13 +364,14 @@ class UiController (object):
         return True
 
 
-    def treeview_right (self, widget, event):
-        tree = self.ui.treeview1.get_selection ()
+    def treeview_right2 (self, widget):
+        tree = widget.get_selection ()
         model, selection = tree.get_selected ()
         if not selection:
             return
 
-        if event.button == 3:
+        if self._treeview_rightclick_event != None:
+            event = self._treeview_rightclick_event
             url = model.get_value (selection, 0)
             thread_id = self.video_queue.getThreadId (url)
             thread = self.video_queue.getVideoThread (thread_id)
@@ -397,6 +402,13 @@ class UiController (object):
                 popup_cont.get_children ()[2].set_sensitive (False)
 
             popup_cont.popup (None, None, None, event.button, event.time)
+
+        self._treeview_rightclick_event = None
+
+
+    def treeview_right (self, widget, event):
+        if event.button == self.__class__.GTK_RIGHT_CLICK_BUTTON:
+            self._treeview_rightclick_event = event
 
 
     def add_queue (self, widget):
