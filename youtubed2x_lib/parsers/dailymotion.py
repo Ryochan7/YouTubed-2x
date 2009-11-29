@@ -9,7 +9,7 @@ class Dailymotion_Parser (Parser_Helper):
     video_url_str = 'http://www.dailymotion.com/video/%s/'
     video_title_re = re.compile (r'vs_videotitle:"([\S ]+)",vs_user:')
     video_url_params_re = re.compile (r"addVariable\(\"video\", \"([\w\-%\.]+)%40%40spark%7C")
-    video_url_real_str = "http://www.dailymotion.com%s"
+    #video_url_real_str = "http://www.dailymotion.com%s"
     parser_type = "Dailymotion"
     domain_str = "http://www.dailymotion.com/"
     host_str = "dailymotion.com"
@@ -19,7 +19,7 @@ class Dailymotion_Parser (Parser_Helper):
     def _parseRealURL (self, commands):
         """Get the real url for the video"""
         from urllib2 import unquote
-        real_url = self.video_url_real_str % unquote (commands[0])
+        real_url = unquote (commands[0])
         return real_url
 
 

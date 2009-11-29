@@ -7,7 +7,7 @@ class GameTrailers_Parser (Parser_Helper):
     """Parser for GameTrailers pages. Updated 07/04/2009"""
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?gametrailers\.com/video/(\S+)')
     video_url_str = 'http://www.gametrailers.com/video/%s'
-    video_title_re = re.compile (r'<span class="MovieTitle">([^<]*)</span>')
+    video_title_re = re.compile (r'<h1 class="movieTitle">([^<]*)</h1>')
     video_url_params_re = re.compile (r'<span class="Downloads">(?:\s+)<a href="(\S+)">Quicktime')
     embed_file_extensions = {"video/quicktime": "mov"}
     parser_type = "GameTrailers"

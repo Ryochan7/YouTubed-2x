@@ -7,7 +7,7 @@ class ScrewAttack_Parser (Parser_Helper):
     """Parser for ScrewAttack pages. Updated 07/04/2009"""
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?screwattack\.com/(\S+)')
     video_url_str = 'http://www.screwattack.com/%s'
-    video_title_re = re.compile (r'<h1 class="title">([^<]*)</h1>')
+    video_title_re = re.compile (r'vau.videoTitle = \'([^<]*)\';')
     video_url_params_re = re.compile (r"gr.vau.videoURL = '(\S+)'")
     video_url_hq_params_re = re.compile (r"gr.vau.videoURLHQ = '(\S+)'")
     embed_file_extensions = {"video/mp4": "mp4"}
