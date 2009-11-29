@@ -123,12 +123,17 @@ class VideoDownloadThread (Thread):
         self.video_queue.send ("unblock-ui")
         gtk.gdk.threads_leave ()
 
-        bitrate = 0
-        if self.app_settings.format in VideoItem.AUDIO_FORMATS:
-            bitrate = self.app_settings.abitrate
-        else:
-            bitrate = self.app_settings.vbitrate
+        abitrate = self.app_settings.abitrate
+        vbitrate = self.app_settings.vbitrate
+        if self.app_settings.format in VideoItem.VIDEO_FORMATS:
             self.video.setOutputRes (self.app_settings.output_res)
+
+#        bitrate = 0
+#        if self.app_settings.format in VideoItem.AUDIO_FORMATS:
+#            bitrate = self.app_settings.abitrate
+#        else:
+#            bitrate = self.app_settings.vbitrate
+#            self.video.setOutputRes (self.app_settings.output_res)
 
         self.video.setFileFormat (self.app_settings.format)
 
@@ -188,7 +193,7 @@ class VideoDownloadThread (Thread):
             print "Overwriting old avi file"
             os.remove (self.video.avi_file)
 
-        status = self._startFFmpeg (bitrate)
+        status = self._startFFmpeg (abitrate, vbitrate)
 
         # Did ffmpeg fail
         if not status and self.status == self.__class__.CANCELING:
@@ -259,7 +264,7 @@ class VideoDownloadThread (Thread):
             self.status = self.__class__.CANCELING
 
 
-    def _startFFmpeg (self, bitrate):
+    def _startFFmpeg (self, abitrate, vbitrate):
         testre = re.compile (r'time=(\d+).(\d+)')
         durationre = re.compile (r'Duration: (\d{2}):(\d{2}):(\d{2}).(\d{2})')
         command = None
@@ -280,10 +285,11 @@ class VideoDownloadThread (Thread):
         match = VideoItem.resolution_re.search (process.stderr.read ())
         if match:
             vid_length, vid_width = match.groups ()
+            #print match.group (0)
             vid_length, vid_width = int (vid_length), int (vid_width)
-            command = self.video.buildCommandList (bitrate, vid_length, vid_width)
+            command = self.video.buildCommandList (abitrate, vbitrate, vid_length, vid_width)
         else:
-            command = self.video.buildCommandList (bitrate)
+            command = self.video.buildCommandList (abitrate, vbitrate)
 
         if not command:
             return True

@@ -2,11 +2,14 @@ import os, sys
 import re
 import subprocess
 from other import WINDOWS
+from ffmpeg_control import FfmpegController
 
 
 class VideoItem (object):
-    command_dict = {'application': 'ffmpeg', 'vcodec': 'libxvid', 'vres': '320x240', 'bitrate': '%ik', 'acodec': 'copy', 'output_file': '%s', 'abitrate': '%ik'}
-    resolution_re = re.compile (r"[ ]+Stream \#\d{1}\.\d{1}(?:\(und\))?: Video: \w+, \w+, (\d+)x(\d+).*")
+    command_dict = FfmpegController.command_dict
+    resolution_re = FfmpegController.resolution_re
+#    command_dict = {'application': 'ffmpeg', 'vcodec': 'libxvid', 'vres': '320x240', 'bitrate': '%ik', 'acodec': 'copy', 'output_file': '%s', 'abitrate': '%ik'}
+#    resolution_re = re.compile (r"[ ]+Stream \#\d{1}\.\d{1}(?:\(und\))?: Video: \w+, \w+, (\d+)x(\d+).*")
 
     MAX_MP3_BITRATE = 384
     MIN_MP3_BITRATE = 32
@@ -163,7 +166,8 @@ in a FAT32 filesystem. Incomplete"""
 
     @staticmethod
     def setFFmpegLocation (path):
-        VideoItem.command_dict.update ({"application": path})
+        FfmpegController.command_dict.update ({"application": path})
+#        VideoItem.command_dict.update ({"application": path})
 
 
     def getOutputFileName (self):
@@ -173,9 +177,11 @@ in a FAT32 filesystem. Incomplete"""
             return "%s.mp3" % self.title
 
 
-    def buildCommandList (self, bitrate, length=None, width=None):
-        if not isinstance (bitrate, int):
-            raise TypeError ("Bitrate must be an integer")
+    def buildCommandList (self, abitrate, vbitrate=384, length=None, width=None):
+        if not isinstance (vbitrate, int):
+            raise TypeError ("Video bitrate must be an integer")
+        elif not isinstance (abitrate, int):
+            raise TypeError ("Audio bitrate must be an integer")
         elif length and not isinstance (length, int):
             raise TypeError ("Video length must be an integer")
         elif width and not isinstance (width, int):
@@ -185,12 +191,12 @@ in a FAT32 filesystem. Incomplete"""
         if self.parser.getEmbedType () in ignore_mimetypes:
             return []
 
+        video_controller = FfmpegController (self.flv_file)
         commands = list ()
         temp_commands = self.command_dict.copy ()
         temp_commands.update ({'input_file': self.flv_file})
-        temp_commands.update ({'bitrate': '%ik' % bitrate})
+        temp_commands.update ({'bitrate': '%ik' % vbitrate})
         temp_commands.update ({'output_file': self.avi_file})
-
 
         if self.file_format == self.AVI_FILE or self.file_format == self.MP4_AVI_FILE:
             output_length = output_width = 0
@@ -201,52 +207,9 @@ in a FAT32 filesystem. Incomplete"""
             else:
                 output_length = 320
                 output_width = 240
-                
 
-            # Add padding to video if needed. This method might be as
-            # good as I can get it
-            if length and width and (float (length)/width) != (float (output_length)/output_width):
-                pad_left = pad_right = pad_top = pad_bottom = 0
-                new_width = width
-                new_length = length
-
-                new_width = (width * output_length) / length
-                if new_width % 2 != 0:
-                    new_width -= 1
-
-                if new_width <= output_width:
-                    new_length = int (new_width * (float (length)/width))
-                    # Continue to downscale until a valid resolution is found
-                    while (new_length % 2 != 0 and new_width > 0):
-                        new_width -= 2
-                        new_length = int (new_width * (float (length)/width))
-                elif new_width > output_width:
-                    new_length = (output_width * length) / width
-                    if new_length % 2 != 0:
-                        new_length -= 1
-                    new_width = int (new_length / (float (length)/width))
-                    # Continue to downscale until a valid resolution is found
-                    while (new_width % 2 != 0 and new_length > 0):
-                        new_length -= 2
-                        new_width = int (new_length / (float (length)/width))
-
-                pad_top = pad_bottom = (output_width - new_width) / 2
-                pad_left = pad_right = (output_length - new_length) / 2
-                if pad_top % 2 != 0:
-                    pad_top += 1
-                    pad_bottom -= 1
-                if pad_left % 2 != 0:
-                    pad_left += 1
-                    pad_right -= 1
-
-                if pad_top: temp_commands.update ({"pad_top": "%i" % pad_top})
-                if pad_bottom: temp_commands.update ({"pad_bottom": "%i" % pad_bottom})
-                if pad_left: temp_commands.update ({"pad_left": "%i" % pad_left})
-                if pad_right: temp_commands.update ({"pad_right": "%i" % pad_right})
-                if new_length > 0 and new_width > 0: temp_commands.update ({"vres": "%ix%i" % (new_length, new_width)})
-#                print new_length
-#                print new_width
-
+        if length and width:
+            video_controller.addPadding (temp_commands, length, width, output_length, output_width)
 
         if self.file_format == self.AVI_FILE or self.file_format == self.MP4_AVI_FILE:
             commands.append (temp_commands['application'])
@@ -264,14 +227,9 @@ in a FAT32 filesystem. Incomplete"""
             commands.append ('-b')
             commands.append (temp_commands['bitrate'])
             commands.append ('-acodec')
-            # Check that the input file is an flv file
-            # If it is, copy audio track. Else, re-encode audio track
-            if self.parser.getEmbedType () == "video/flv":
-                commands.append (temp_commands['acodec'])
-            else:
-                commands.append ("libmp3lame")
-                commands.append ('-ab')
-                commands.append ("%ik" % 128)
+            commands.append ("libmp3lame")
+            commands.append ('-ab')
+            commands.append ("%ik" % abitrate)
 
             # Add padding if needed
             if "pad_top" in temp_commands:
@@ -310,24 +268,26 @@ in a FAT32 filesystem. Incomplete"""
             commands.append ('-acodec')
             commands.append (temp_commands['acodec'])
             commands.append ('-ab')
-            commands.append (temp_commands['bitrate'])
+            commands.append (temp_commands['abitrate'])
             commands.append (temp_commands['output_file'])
 
 #        print commands
         return commands
 
 
-    def transcodeVideo (self, bitrate):
+    def transcodeVideo (self, abitrate, vbitrate=384):
         """Transcodes the input .flv file into a GP2X-compatible media file"""
-        if not isinstance (bitrate, int):
-            raise TypeError ("Bitrate must be an integer")
+        if not isinstance (abitrate, int):
+            raise TypeError ("Audio bitrate must be an integer")
+        elif not isinstance (vbitrate, int):
+            raise TypeError ("Video bitrate must be an integer")
 
         print "Transcoding '%s'" % os.path.basename (self.flv_file)
         print
         status = 90
 
         if self.file_format == self.AVI_FILE or self.file_format == self.MP4_AVI_FILE:
-            if bitrate > self.__class__.MAX_VID_BITRATE or bitrate < self.__class__.MIN_VID_BITRATE or (bitrate % 8 != 0):
+            if vbitrate > self.__class__.MAX_VID_BITRATE or vbitrate < self.__class__.MIN_VID_BITRATE or (vbitrate % 8 != 0):
                 print >> sys.stderr, "You specified an invalid video bitrate for transcoding."
                 return False
             else:
@@ -338,9 +298,9 @@ in a FAT32 filesystem. Incomplete"""
                 if match:
                     vid_length, vid_width = match.groups ()
                     vid_length, vid_width = int (vid_length), int (vid_width)
-                    command = self.buildCommandList (bitrate, vid_length, vid_width)
+                    command = self.buildCommandList (abitrate, vbitrate, vid_length, vid_width)
                 else:
-                    command = self.buildCommandList (bitrate)
+                    command = self.buildCommandList (abitrate, vbitrate)
 
                 if not WINDOWS:
                     process = subprocess.Popen (command, universal_newlines=True, close_fds=True)
@@ -348,11 +308,11 @@ in a FAT32 filesystem. Incomplete"""
                     process = subprocess.Popen (command, universal_newlines=True)
                 status = process.wait ()
         elif self.file_format == self.MP3_FILE:
-            if bitrate > self.__class__.MAX_MP3_BITRATE or bitrate < self.__class__.MIN_MP3_BITRATE or (bitrate % 4 != 0):
+            if abitrate > self.__class__.MAX_MP3_BITRATE or abitrate < self.__class__.MIN_MP3_BITRATE or (abitrate % 4 != 0):
                 print >> sys.stderr, "You specified an invalid audio bitrate for transcoding."
                 return False
             else:
-                command = self.buildCommandList (bitrate)
+                command = self.buildCommandList (abitrate)
                 if not WINDOWS:
                     process = subprocess.Popen (command, universal_newlines=True, close_fds=True)
                 else:

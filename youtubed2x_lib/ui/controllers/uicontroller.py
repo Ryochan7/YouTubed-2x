@@ -31,12 +31,12 @@ class UiController (object):
                "on_sites_activate": self.show_sites_window, "on_close_sites_clicked": self.hide_sites_window, "on_sites_dialog_delete_event": self.keep_sites_window,
                "on_sites_dialog_response": self.hide_sites_window, "on_checkbutton1_toggled": self.transcode_check, "on_checkbutton2_toggled": self.overwrite_check,
                "on_checkbutton3_toggled": self.keep_flvs_check, "on_auto_download_check_toggled": self.change_auto_download,
-               "on_combobox2_changed": self.change_bitrate, "on_resolution_combobox_changed": self.resolution_change, "on_combobox1_changed": self.change_default_bitrate,
+               "on_video_bitrate_changed": self.change_video_bitrate, "on_resolution_combobox_changed": self.resolution_change, "on_combobox1_changed": self.change_format,
                "on_toolbutton4_clicked": self.move_up, "on_toolbutton5_clicked": self.move_down, "on_treeview1_cursor_changed": self.select_item,
                "on_toolbutton3_clicked": self.clear_complete, "on_openfolderbutton_clicked": self.open_video_folder,
                "on_filechooserbutton1_current_folder_changed": self.change_video_folder, "on_pause_toolbutton_clicked": self.pause_download,
                "on_toolbutton2_clicked": self.remove, "on_button1_clicked": self.add_queue, "on_toolbutton1_clicked": self.startProcess,
-               "on_entry1_activate": self.add_queue,
+               "on_entry1_activate": self.add_queue, "on_audio_bitrate_changed": self.change_audio_bitrate,
               }
         self.ui.window.signal_autoconnect (dic)
 
@@ -151,40 +151,30 @@ class UiController (object):
         self.app_settings.auto_download = not self.app_settings.auto_download
 
 
-    def change_bitrate (self, widget):
-        if self.app_settings.format in VideoItem.AUDIO_FORMATS:
-            self.app_settings.abitrate = (widget.get_active ()*32)+32
-        else:
-            index = widget.get_active ()
-            self.app_settings.vbitrate = self.ui._video_bitrate_options[index]
+    def change_video_bitrate (self, widget):
+        index = widget.get_active ()
+        self.app_settings.vbitrate = self.ui._video_bitrate_options[index]
+
+    def change_audio_bitrate (self, widget):
+        self.app_settings.abitrate = (widget.get_active ()*32)+32
 
 
     def resolution_change (self, widget):
         self.app_settings.output_res = widget.get_active ()
 
 
-    def change_default_bitrate (self, widget):
+    def change_format (self, widget):
         format = widget.get_active ()
         if format in VideoItem.VIDEO_FORMATS:
             self.app_settings.format = format
-            bitrate_list = gtk.ListStore (gobject.TYPE_INT)
-            self.ui.combobox2.set_model (bitrate_list)
-
-            for bitrate in self.ui._video_bitrate_options:
-                bitrate_list.append ([bitrate])
-            if self.app_settings.vbitrate in self.ui._video_bitrate_options:
-                self.ui.combobox2.set_active (self.ui._video_bitrate_options.index (self.app_settings.vbitrate))
-
             self.ui.resolution_combobox.set_sensitive (True)
+            self.ui.video_bitrate_combobox.set_sensitive (True)
+            self.ui.audio_bitrate_combobox.set_sensitive (True)
         else:
             self.app_settings.format = format
-            bitrate_list = gtk.ListStore (gobject.TYPE_INT)
-            self.ui.combobox2.set_model (bitrate_list)
-            for n in range (1,13):
-                bitrate_list.append ([n*32])
-
-            self.ui.combobox2.set_active ((self.app_settings.abitrate / 32)-1)
             self.ui.resolution_combobox.set_sensitive (False)
+            self.ui.video_bitrate_combobox.set_sensitive (False)
+            self.ui.audio_bitrate_combobox.set_sensitive (True)
 
 
     def move_up (self, widget):

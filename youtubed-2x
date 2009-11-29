@@ -46,9 +46,8 @@ command_parser.add_option ('-o', '--overwrite', action='store_true', dest='overw
 command_parser.add_option ('-s', '--simulate', action='store_true', dest='simulate', default=False, help="Don't download or transcode videos. Useful for debugging parsers")
 command_parser.add_option ('-f', '--format', action='store', dest='format', default='mpeg4', help="Choose the output file format: avi, mpeg4, or mp3 (default: mpeg4)")
 command_parser.add_option ('-r', action='store', type='int', dest='resolution', default=VideoItem.RES_320, help="Set output video resolution. Options: 0 (320x240)[default], 1 (640x480)")
-command_parser.add_option ('-b', action='store', type='int', dest='bitrate', default=384, help="Set the bitrate for the output in kbps (default: 384 video, 128 audio)")
-command_parser.add_option ('-u', '--username', action='store', dest='username', default='', help="Enter YouTube username")
-command_parser.add_option ('-p', '--password', action='store', dest='password', default='', help="Enter YouTube password")
+command_parser.add_option ('-b', action='store', type='int', dest='vbitrate', default=384, help="Set the video bitrate for the output in kbps (default: 384 video)")
+command_parser.add_option ('-a', action='store', type='int', dest='abitrate', default=128, help="Set the audio bitrate for the output in kbps (default: 128)")
 command_parser.add_option ('-h', '--help', action='help', help="Display help text and exit")
 command_parser.add_option ('-v', '--version', action='version', help="Print version number and exit")
 command_parser.add_option ('--sitedirs', action='store_true', dest='sitefolders', default=False, help="Group videos by web site origin")
@@ -75,24 +74,12 @@ if command_opts.format != 'avi' and command_opts.format != 'mp3' and command_opt
     print >> sys.stderr, "You chose an improper output format. Exiting."
     print command_opts.format
     sys.exit (42)
-if (command_opts.format == 'avi' or command_opts.format == "mpeg4") and (command_opts.bitrate > 2000 or command_opts.bitrate < 128 or (command_opts.bitrate % 8 != 0)):
+if (command_opts.format == 'avi' or command_opts.format == "mpeg4") and (command_opts.vbitrate > 2000 or command_opts.vbitrate < 128 or (command_opts.vbitrate % 8 != 0)):
     print >> sys.stderr, "Invalid video bitrate. The video bitrate must be set between 128 kbps and 2000 kbps and be divisible by 8. Exiting."
     sys.exit (42)
-elif command_opts.format == 'mp3' and command_opts.bitrate == 384:
-#   print "Switching avi default to mp3 default (128 kbps)."
-    command_opts.bitrate = 128
-elif command_opts.format == 'mp3' and (command_opts.bitrate > 384 or command_opts.bitrate < 32 or (command_opts.bitrate % 4 != 0)):
-    print >> sys.stderr, "Invalid audio bitrate. The audio bitrate must be set between 32 kbps and 192 kbps and be divisible by 4. Exiting."
+elif command_opts.format == 'mp3' and (command_opts.abitrate > 384 or command_opts.abitrate < 32 or (command_opts.abitrate % 4 != 0)):
+    print >> sys.stderr, "Invalid audio bitrate. The audio bitrate must be set between 32 kbps and 384 kbps and be divisible by 4. Exiting."
     sys.exit (42)
-# Check if username or password were not defined.
-# Don't do anything if both or neither are defined.
-elif command_opts.username or command_opts.password:
-    if not command_opts.username:
-        print >> sys.stderr, "Username was not specified. Exiting."
-        sys.exit (42)
-    elif not command_opts.password:
-        print >> sys.stderr, "Password was not specified. Exiting."
-        sys.exit (42)
 elif (command_opts.format == "avi" or command_opts.format == "mpeg4") and command_opts.resolution != VideoItem.RES_320 and command_opts.resolution != VideoItem.RES_640:
     print >> sys.stderr, "Video resolution choice is invalid. Exiting."
     sys.exit (42)
@@ -124,30 +111,14 @@ for full_url in command_args:
 
     try:
         youtube_video.getVideoInformation ()
-    except youtube_video.parser.LoginRequired, e:
-        print e.message
-        if command_opts.username and command_opts.password:
-            print "Attempting login"
-            print
-            youtube_video.getVideoInformation (command_opts.username, command_opts.password)
-        else:
-            print "Login information not specified."
-            sys.exit (42)
-    except youtube_video.parser.UnknownTitle, e:
+    except (youtube_video.parser.UnknownTitle, youtube_video.parser.InvalidCommands,
+            PageNotFound, youtube_video.parser.URLBuildFailed, youtube_video.parser.InvalidPortal) as e:
         print >> sys.stderr, "%s. Exiting." % e.message
         sys.exit (42)
-    except youtube_video.parser.InvalidCommands, e:
+    except Exception as e:
         print >> sys.stderr, "%s. Exiting." % e.message
         sys.exit (42)
-    except PageNotFound, e:
-        print >> sys.stderr, "%s. Exiting." % e.message
-        sys.exit (42)
-    except youtube_video.parser.URLBuildFailed, e:
-        print >> sys.stderr, "%s. Exiting." % e.message
-        sys.exit (42)
-    except youtube_video.parser.InvalidPortal, e:
-        print >> sys.stderr, "%s. Exiting." % e.message
-        sys.exit (42)
+        
 
     print "%s video" % youtube_video.parser.getType ()
     print "Title: %s" % youtube_video.title
@@ -236,7 +207,7 @@ for full_url in command_args:
 
     youtube_video.__class__.setFFmpegLocation (ffmpeg_file)
     if not os.path.exists (youtube_video.avi_file) and not command_opts.download:
-        status = youtube_video.transcodeVideo (command_opts.bitrate)
+        status = youtube_video.transcodeVideo (command_opts.abitrate, command_opts.vbitrate)
         if not status:
             print >> sys.stderr, "Transcoding failed. Exiting."
             if os.path.exists (youtube_video.avi_file):
@@ -252,7 +223,7 @@ for full_url in command_args:
             print >> sys.stderr, "Could not delete '%s' for some reason. Continuing exit." % output_filename
             sys.exit (42)
 
-        status = youtube_video.transcodeVideo (command_opts.bitrate)
+        status = youtube_video.transcodeVideo (command_opts.abitrate, command_opts.vbitrate)
         if not status:
             print >> sys.stderr, "Transcoding failed. Exiting."
             if os.path.exists (youtube_video.avi_file):
