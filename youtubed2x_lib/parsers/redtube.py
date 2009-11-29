@@ -8,13 +8,14 @@ class RedTube_Parser (Parser_Helper):
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?redtube\.com/(\d+)$')
     domain_str = "http://www.redtube.com/"
     video_url_str = 'http://www.redtube.com/%s'
-    video_url_real_str = 'http://dl.redtube.com/_videos_t4vn23s9jc5498tgj49icfj4678/%s/%s.flv'
+#    video_url_real_str = 'http://dl.redtube.com/_videos_t4vn23s9jc5498tgj49icfj4678/%s/%s.flv'
+    video_url_real_str = 'http://dlembed.redtube.com/_videos_t4vn23s9jc5498tgj49icfj4678/%s/%s.flv'
     video_title_re = re.compile (r'<h1 class="videoTitle">([^<]*)</h1>')
     # Mapped translation characters
     video_map_table = ['R', '1', '5', '3', '4', '2', 'O', '7', 'K', '9', 'H', 'B', 'C', 'D', 'X', 'F', 'G', 'A', 'I', 'J', '8', 'L', 'M', 'Z', '6', 'P', 'Q', '0', 'S', 'T', 'U', 'V', 'W', 'E', 'Y', 'N']
     parser_type = "RedTube"
     host_str = "redtube.com"
-    version = datetime.date (2009, 8, 14)
+    version = datetime.date (2009, 11, 28)
 
 
     def getVideoPage (self, account="", password=""):

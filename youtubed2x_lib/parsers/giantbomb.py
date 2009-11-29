@@ -12,8 +12,9 @@ class GiantBomb_Parser (Parser_Helper):
     video_embed_code_re = re.compile (r'flashvars="paramsURI=http%3A//www.giantbomb.com/video/params/(\d+)/(?:\?w=1)?"')
     video_url_params_re = re.compile (r'<URI bitRate="700">(\S+)</URI>')
     parser_type = "GiantBomb"
+    domain_str = "http://www.giantbomb.com/"
     host_str = "giantbomb.com"
-    version = datetime.date (2009, 7, 4)
+    version = datetime.date (2009, 11, 28)
 
 
     def getVideoPage (self, account="", password=""):

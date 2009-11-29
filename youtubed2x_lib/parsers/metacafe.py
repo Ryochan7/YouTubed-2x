@@ -11,8 +11,9 @@ class Metacafe_Parser (Parser_Helper):
     video_title_re = re.compile (r'<title>([^<]*) - Video</title>')
     video_url_params_re = re.compile (r"mediaURL=(\S+)&postRollContentURL=")
     parser_type = "Metacafe"
+    domain_str = "http://www.metacafe.com/"
     host_str = "metacafe.com"
-    version = datetime.date (2009, 8, 14)
+    version = datetime.date (2009, 11, 28)
 
 
     def _parseRealURL (self, commands):

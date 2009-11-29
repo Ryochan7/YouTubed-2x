@@ -11,8 +11,9 @@ class YouJizz_Parser (Parser_Helper):
     video_title_re = re.compile (r'<title>([^<]*)</title>')
     video_url_params_re = re.compile (r'so\.addVariable\("content_video","(\S+)"\);')
     parser_type = "YouJizz"
+    domain_str = "http://www.youjizz.com/"
     host_str = "youjizz.com"
-    version = datetime.date (2009, 10, 12)
+    version = datetime.date (2009, 11, 28)
 
 
     def _parseRealURL (self, commands):

@@ -10,8 +10,9 @@ class Tube8_Parser (Parser_Helper):
     video_title_re = re.compile (r'">([\S ]+)</h1>')
     video_url_params_re = re.compile (r'param name="FlashVars" value="videoUrl=(\S+)&imageUrl=')
     parser_type = "Tube8"
+    domain_str = "http://www.tube8.com/"
     host_str = "tube8.com"
-    version = datetime.date (2009, 7, 4)
+    version = datetime.date (2009, 11, 28)
 
 
     def _parseRealURL (self, commands):

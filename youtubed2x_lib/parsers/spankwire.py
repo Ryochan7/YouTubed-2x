@@ -11,8 +11,9 @@ class SpankWire_Parser (Parser_Helper):
     video_details_xml_url = "http://www.spankwire.com/Player/VideoXML.aspx?id=%s"
     video_url_params_re = re.compile (r'<url type="string">(\S+)</url>')
     parser_type = "SpankWire"
+    domain_str = "http://www.spankwire.com/"
     host_str = "spankwire.com"
-    version = datetime.date (2009, 8, 25)
+    version = datetime.date (2009, 11, 28)
 
 
     def _parsePlayerCommands (self, page_dump):

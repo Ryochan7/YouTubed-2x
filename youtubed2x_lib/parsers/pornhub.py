@@ -13,8 +13,9 @@ class Pornhub_Parser (Parser_Helper):
     video_url_params_re = re.compile (r'<param name="FlashVars" value="options=(\S+)"/>')
     video_key_re = re.compile (r"<flv_url>(\S+)</flv_url>")
     parser_type = "Pornhub"
+    domain_str = "http://www.pornhub.com/"
     host_str = "pornhub.com"
-    version = datetime.date (2009, 8, 14)
+    version = datetime.date (2009, 11, 28)
 
 
     def _parseRealURL (self, commands):

@@ -12,8 +12,9 @@ class ScrewAttack_Parser (Parser_Helper):
     video_url_hq_params_re = re.compile (r"gr.vau.videoURLHQ = '(\S+)'")
     embed_file_extensions = {"video/mp4": "mp4"}
     parser_type = "ScrewAttack"
+    domain_str = "http://www.screwattack.com/"
     host_str = "screwattack.com"
-    version = datetime.date (2009, 7, 4)
+    version = datetime.date (2009, 11, 28)
 
 
     def __init__ (self, video_id):

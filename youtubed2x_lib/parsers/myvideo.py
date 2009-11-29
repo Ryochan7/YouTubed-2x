@@ -10,8 +10,9 @@ class MyVideo_Parser (Parser_Helper):
     video_title_re = re.compile (r"<td class='globalHd'>([^<]*)</td>")
     video_url_params_re = re.compile (r"<link rel='image_src' href='(\S+)' />")
     parser_type = "MyVideo"
+    domain_str = "http://www.myvideo.de/"
     host_str = "myvideo.de"
-    version = datetime.date (2009, 7, 4)
+    version = datetime.date (2009, 11, 28)
 
 
     def _parseRealURL (self, commands):

@@ -12,8 +12,9 @@ class Escapist_Parser (Parser_Helper):
     video_url_params_re = re.compile (r'&quot;config=(\S+)%3Fembed%3D1&quot;')
     video_url_real_str_re = re.compile (r'},{\'url\':\'(\S+)\',\'scaling')
     parser_type = "The Escapist"
+    domain_str = "http://www.escapistmagazine.com/"
     host_str = "escapistmagazine.com"
-    version = datetime.date (2009, 10, 14)
+    version = datetime.date (2009, 11, 28)
 
 
     def _parseRealURL (self, commands):

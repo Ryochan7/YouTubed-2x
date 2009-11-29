@@ -12,8 +12,9 @@ class Spike_Parser (Parser_Helper):
     video_title_re = re.compile (r'<meta name="title" content="([\S ]+)"(?:\s+)?/>')
     video_url_params_re = re.compile (r'<src>(\S+)</src>')
     parser_type = "Spike"
+    domain_str = "http://www.spike.com/"
     host_str = "spike.com"
-    version = datetime.date (2009, 8, 25)
+    version = datetime.date (2009, 11, 28)
 
 
     def _parsePlayerCommands (self, page_dump):

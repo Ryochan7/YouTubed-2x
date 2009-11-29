@@ -11,8 +11,9 @@ class HardSexTube_Parser (Parser_Helper):
     video_details_xml_url = "http://vidii.hardsextube.com/video/%s/config.xml"
     video_url_params_re = re.compile (r'<PLAYER_SETTINGS Name="FLVPath" Value="(\S+)"/>')
     parser_type = "HardSexTube"
+    domain_str = "http://www.hardsextube.com/"
     host_str = "hardsextube.com"
-    version = datetime.date (2009, 8, 25)
+    version = datetime.date (2009, 11, 28)
 
 
     def _parsePlayerCommands (self, page_dump):

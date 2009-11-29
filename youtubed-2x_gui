@@ -8,6 +8,8 @@ if not sys.platform == "win32":
 import gtk
 import gtk.glade
 import gobject
+import pango
+import webbrowser
 from youtubed2x_lib.videoitem import VideoItem
 from youtubed2x_lib.other import VERSION, APP_NAME, WINDOWS
 import youtubed2x_lib.settings as settings
@@ -158,23 +160,10 @@ class YouTubeDownloader (object):
         #self.speed_label = self.window.get_widget ("speedlabel")
         self.statusbar_context_id = self.statusbar.get_context_id ("Statusbar")
         self.pause_toolbutton = self.window.get_widget ("pause_toolbutton")
+#       self.update_statusbar ("HAMTARO")
 
         self.sites_window = self.window.get_widget ("sites_dialog")
-        sites_textview = self.window.get_widget ("sites_textview")
-        sites_str = "Supported Sites\n-----------------------\n\n"
-        parser_list = parser_manager.get_official_parsers ()
-        name_list = []
-        tmp_dic = {}
-        for parser in parser_list:
-            name_list.append (parser.getType ())
-            tmp_dic[parser.getType ()] = parser
-        name_list.sort ()
-        for name in name_list:
-            parser_version = tmp_dic[name].version
-            sites_str += "* %s    (%s/%s/%s)\n" % (name, parser_version.month, parser_version.day, parser_version.year)
-        sites_textview.get_buffer ().set_text (sites_str)
-
-#       self.update_statusbar ("HAMTARO")
+        self.sites_textview = self.window.get_widget ("sites_textview")
 
 
     def _cell_render_service (self, column, cell, model, iter, video_queue):

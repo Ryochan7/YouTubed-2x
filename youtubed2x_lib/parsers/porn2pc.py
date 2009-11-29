@@ -12,8 +12,9 @@ class Porn2Pc_Parser (Parser_Helper):
     const_video_url_re = re.compile (r'^((?:http://)?(?:www\.)?porn2pc\.com/)(\S+)')
     video_url_str = 'http://www.porn2pc.com/%s'
     parser_type = "Porn2Pc"
+    domain_str = "http://www.porn2pc.com/"
     host_str = "porn2pc.com"
-    version = datetime.date (2009, 7, 4)
+    version = datetime.date (2009, 11, 28)
 
 
     @classmethod

@@ -11,8 +11,9 @@ class GoogleVideo_Parser (Parser_Helper):
     video_url_params_re = re.compile (r"<a href=(?:\")?(http://v(\d+)\.(\S+)\.googlevideo.com/videoplayback\?(\S+))(?:\")?>")
     embed_file_extensions = {"video/mp4": "mp4"}
     parser_type = "GoogleVideo"
+    domain_str = "http://video.google.com/"
     host_str = "video.google.com"
-    version = datetime.date (2009, 7, 6)
+    version = datetime.date (2009, 11, 28)
 
 
     def __init__ (self, video_id):

@@ -13,8 +13,9 @@ class YahooVideo_Parser (Parser_Helper):
     video_details_re = re.compile (r'so.addVariable\("id", "(\w+)"\);')
     video_url_params_re = re.compile (r'<STREAM APP="(\S+)" FULLPATH="(\S+)" CLIPID')
     parser_type = "Yahoo Video"
+    domain_str = "http://video.yahoo.com/"
     host_str = "video.yahoo.com"
-    version = datetime.date (2009, 7, 4)
+    version = datetime.date (2009, 11, 28)
 
 
     def _parsePlayerCommands (self, page_dump):

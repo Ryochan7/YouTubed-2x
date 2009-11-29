@@ -11,8 +11,9 @@ class Dailymotion_Parser (Parser_Helper):
     video_url_params_re = re.compile (r"addVariable\(\"video\", \"([\w\-%\.]+)%40%40spark%7C")
     video_url_real_str = "http://www.dailymotion.com%s"
     parser_type = "Dailymotion"
+    domain_str = "http://www.dailymotion.com/"
     host_str = "dailymotion.com"
-    version = datetime.date (2009, 7, 4)
+    version = datetime.date (2009, 11, 28)
 
 
     def _parseRealURL (self, commands):

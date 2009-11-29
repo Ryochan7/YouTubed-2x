@@ -11,8 +11,9 @@ class YouPorn_Parser (Parser_Helper):
     video_title_re = re.compile (r'<title>([^<]+) - Free Porn Videos - YouPorn.com Lite \(BETA\)</title>')
     video_url_params_re = re.compile (r'<a href="http://download.youporn.com/download/(\d+)/\?(\S+)">FLV - Flash Video format</a>')
     parser_type = "YouPorn"
+    domain_str = "http://www.youporn.com/"
     host_str = "youporn.com"
-    version = datetime.date (2009, 7, 4)
+    version = datetime.date (2009, 11, 28)
 
 
     def __init__ (self, video_id):

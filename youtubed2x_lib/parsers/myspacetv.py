@@ -11,8 +11,9 @@ class MySpaceTV_Parser (Parser_Helper):
     video_title_re = re.compile (r"<item>\r\n      <title>([^<]*)</title>")
     video_url_params_re = re.compile (r'<media:content url="(\S+)" type="video/x-flv"')
     parser_type = "MySpaceTV"
+    domain_str = "http://vids.myspace.com/"
     host_str = "vids.myspace.com"
-    version = datetime.date (2009, 7, 4)
+    version = datetime.date (2009, 11, 28)
 
 
     def getVideoPage (self, account="", password=""):

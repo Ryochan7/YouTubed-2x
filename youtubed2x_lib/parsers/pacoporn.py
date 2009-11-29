@@ -12,8 +12,9 @@ class PacoPorn_Parser (Parser_Helper):
     video_title_re = re.compile (r'TEXT Name=\"Header\" Value=\"([\S ]+)\" Enable=')
     video_url_params_re = re.compile (r'PLAYER_SETTINGS Name=\"FLVPath\" Value=\"(\S+)\"')
     parser_type = "PacoPorn"
+    domain_str = "http://www.pacoporn.com/"
     host_str = "pacoporn.com"
-    version = datetime.date (2009, 7, 4)
+    version = datetime.date (2009, 11, 28)
 
 
     def getVideoPage (self, account="", password=""):

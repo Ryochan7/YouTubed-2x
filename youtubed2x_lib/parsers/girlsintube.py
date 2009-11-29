@@ -11,8 +11,9 @@ class GirlsInTube_Parser (Parser_Helper):
     video_title_re = re.compile (r'<div class="player-comments"> <h1>([\S ]+)</h1> ')
     video_url_params_re = re.compile (r"{ 'clip': {'url': '(\S+)', ")
     parser_type = "GirlsInTube"
+    domain_str = "http://www.girlsintube.com/"
     host_str = "girlsintube.com"
-    version = datetime.date (2009, 7, 4)
+    version = datetime.date (2009, 11, 28)
 
 
     def getVideoPage (self, account="", password=""):

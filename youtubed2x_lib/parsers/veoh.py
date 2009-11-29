@@ -14,8 +14,9 @@ class Veoh_Parser (Parser_Helper):
     forward_link_re = re.compile (r'aowPermalink="(\S+)"')
     is_portal = True
     parser_type = "Veoh"
+    domain_str = "http://www.veoh.com/"
     host_str = "veoh.com"
-    version = datetime.date (2009, 7, 4)
+    version = datetime.date (2009, 11, 28)
 
 
     def __init__ (self, video_id):

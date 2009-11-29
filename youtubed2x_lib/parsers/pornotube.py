@@ -18,8 +18,9 @@ class PornoTube_Parser (Parser_Helper):
     video_url_uid_re = re.compile (r'&userId=(\d+)&')
     video_url_mdomain_re = re.compile (r'&mediaDomain=([^&]+)&')
     parser_type = "PornoTube"
+    domain_str = "http://www.pornotube.com/"
     host_str = "pornotube.com"
-    version = datetime.date (2009, 7, 4)
+    version = datetime.date (2009, 11, 28)
 
 
     def getVideoPage (self):

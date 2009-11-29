@@ -9,8 +9,9 @@ class Guba_Parser (Parser_Helper):
     video_title_re = re.compile (r'var theName="([\S ]+)";')
     video_url_params_re = re.compile (r'"(\S+)" \);\r\n(?:[ ]{32})bfp.writeBlogFlashPlayer\(\);')
     parser_type = "Guba"
+    domain_str = "http://www.guba.com/"
     host_str = "guba.com"
-    version = datetime.date (2009, 7, 4)
+    version = datetime.date (2009, 11, 28)
 
 
     def _parseRealURL (self, commands):

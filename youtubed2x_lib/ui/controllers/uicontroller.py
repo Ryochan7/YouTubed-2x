@@ -2,6 +2,7 @@ import os
 import gtk
 import webbrowser
 import gobject
+import pango
 import subprocess
 from youtubed2x_lib.videoitem import VideoItem
 from youtubed2x_lib.other import WINDOWS
@@ -35,12 +36,40 @@ class UiController (object):
                "on_toolbutton3_clicked": self.clear_complete, "on_openfolderbutton_clicked": self.open_video_folder,
                "on_filechooserbutton1_current_folder_changed": self.change_video_folder, "on_pause_toolbutton_clicked": self.pause_download,
                "on_toolbutton2_clicked": self.remove, "on_button1_clicked": self.add_queue, "on_toolbutton1_clicked": self.startProcess,
+               "on_entry1_activate": self.add_queue,
               }
         self.ui.window.signal_autoconnect (dic)
 
         self.video_queue.register ("unblock-ui", self.unlock_partial_ui)
         self.video_queue.register ("block-ui", self.block_partial_ui)
 
+        # Populate sites_textview with hooks to controller methods when moving over text
+        # and clicking on links
+        self.ui.sites_textview.connect ("motion-notify-event", self.sites_textview_motion_notify_event)
+
+        parser_list = self.parser_manager.get_official_parsers ()
+        name_list = []
+        tmp_dic = {}
+        for parser in parser_list:
+            name_list.append (parser.getType ())
+            tmp_dic[parser.getType ()] = parser
+        name_list.sort ()
+
+        textbuffer = self.ui.sites_textview.get_buffer ()
+        textbuffer.insert (textbuffer.get_end_iter (), "Supported Sites\n-----------------------\n\n")
+
+        for i, name in enumerate (name_list):
+            newtag = textbuffer.create_tag ("url-tag%i" % i)
+            newtag.set_property ("underline", pango.UNDERLINE_SINGLE)
+            newtag.set_property ("foreground", "#2750FF")
+            newtag.connect ("event", self.sites_textview_link_button_press_event)
+            newtag.set_data ("link", tmp_dic[name].domain_str)
+
+            parser_version = tmp_dic[name].version
+            textbuffer.insert (textbuffer.get_end_iter (), "* ")
+            textbuffer.insert_with_tags_by_name (textbuffer.get_end_iter (), name, newtag.get_property ("name"))
+#            sites_str += "* %s    (%s/%s/%s)\n" % (name, parser_version.month, parser_version.day, parser_version.year)
+            textbuffer.insert (textbuffer.get_end_iter (), "   (%s/%s/%s)\n" % (parser_version.month, parser_version.day, parser_version.year))
 
 
     def change_video_folder (self, widget):
@@ -382,17 +411,20 @@ class UiController (object):
             if thread.status == thread.__class__.DONE:
                 video_file_input = thread.video.flv_file
                 video_file_output = thread.video.avi_file
-                if os.path.exists (video_file_input):
+                video_input_exists = os.path.exists (video_file_input)
+                video_output_exists = os.path.exists (video_file_output)
+
+                if video_input_exists:
                     popup_cont.get_children ()[0].set_sensitive (True)
                 else:
                     popup_cont.get_children ()[0].set_sensitive (False)
 
-                if os.path.exists (video_file_output):
+                if video_output_exists:
                     popup_cont.get_children ()[1].set_sensitive (True)
                 else:
                     popup_cont.get_children ()[1].set_sensitive (False)
 
-                if video_file_input or video_file_output:
+                if video_input_exists or video_output_exists:
                     popup_cont.get_children ()[2].set_sensitive (True)
                 else:
                     popup_cont.get_children ()[2].set_sensitive (False)
@@ -407,6 +439,9 @@ class UiController (object):
 
 
     def treeview_right (self, widget, event):
+        # Check if a right click was performed on a video item.
+        # The treeview_right2 will be called shortly after this
+        # due to cursor-changed signal
         if event.button == self.__class__.GTK_RIGHT_CLICK_BUTTON:
             self._treeview_rightclick_event = event
 
@@ -438,4 +473,26 @@ class UiController (object):
         self.select_item ()
         return True
 
+
+    def sites_textview_link_button_press_event (self, tag, widget, event, gtkiter):
+        if event.type == gtk.gdk.BUTTON_PRESS:
+            link = tag.get_data ("link")
+            webbrowser.open (link)
+
+        return
+
+
+    def sites_textview_motion_notify_event (self, widget, event):
+        (x, y, state) = event.window.get_pointer ()
+        (newx, newy) = widget.window_to_buffer_coords (widget.get_window_type (event.window), x, y)
+        tag_list = widget.get_iter_at_location (newx, newy).get_tags ()
+        #widget.window.get_pointer()
+        cursor = gtk.gdk.Cursor (gtk.gdk.LEFT_PTR)
+
+        for tag in tag_list:
+            if tag.get_data ("link"):
+                cursor = gtk.gdk.Cursor (gtk.gdk.HAND2)
+                break
+
+        event.window.set_cursor (cursor)
 
