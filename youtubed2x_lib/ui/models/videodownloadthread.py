@@ -390,10 +390,19 @@ class VideoDownloadThread (Thread):
             # download but stats can't be updated
             self.video_queue.update_status (self.download_id, size="Unknown", status="Downloading", force_update=True)
 
+#        self.video_queue.download_semaphore.acquire ()
+#        while not self.video_queue.is_download_ready ():
+#            continue
+
         last_update = time.time ()
         try:
             data = n00b.readBlock ()
+#            self.video_queue.update_download_speed (len (data))
+#            self.video_queue.download_semaphore.release ()
         except Exception as exception:
+            #print >> sys.stderr, "%s" % exception
+            sys.stderr.write (exception)
+#            self.video_queue.download_semaphore.release ()
             return False
 
         # Refresh GUI (particularly for the pause button)
@@ -436,13 +445,22 @@ class VideoDownloadThread (Thread):
                     return False
 
                 last_update = time.time ()
+                #self.video_queue.download_semaphore.acquire ()
+                #while not self.video_queue.is_download_ready ():
+                #    continue
                 try:
                     data = n00b.readBlock ()
+                    #self.video_queue.update_download_speed (len (data))
+                    #self.video_queue.download_semaphore.release ()
                 except Exception as exception:
                     print "%s" % exception
+                    #self.video_queue.download_semaphore.release ()
                     return False
-                
+
             total_time += (time.time () - last_update)
+            #print "time.time (): %s" % time.time ()
+            #print "last_update: %s" % last_update
+            #print "TOTAL TIME: %s" % total_time
             speeda = (n00b.getBytesDownloaded () - initial_size) / total_time
 #            speeda = n00b.getBytesDownloaded () / total_time
             percentage = n00b.downloadPercentage ()
@@ -454,11 +472,23 @@ class VideoDownloadThread (Thread):
                 self.video_queue.update_status (self.download_id, progress=0, speed="%s/s" % n00b.humanizeSize (speeda), eta=n00b.humanizeTime (speeda))
 
             last_update = time.time ()
+            #self.video_queue.download_semaphore.acquire ()
+            #while not self.video_queue.is_download_ready ():
+            #    continue
+
+            #self.video_queue.is_download_ready ()
             try:
+                #print "Your mom is a ho"
                 data = n00b.readBlock ()
+                #self.video_queue.update_download_speed (len (data))
+                #self.video_queue.download_semaphore.release ()
             except Exception as exception:
                 print "%s" % exception
+                #self.video_queue.download_semaphore.release ()
                 return False
+
+            #speeda2 = (len (data) / (time.time () - last_update))
+            #print "SPEED 2: %s" % speeda2
 
         self._downloader = None
         

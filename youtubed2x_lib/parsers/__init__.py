@@ -1,12 +1,14 @@
 import re
+import urllib2
 from youtubed2x_lib.other import getPage, PageNotFound
+import youtubed2x_lib.mimevault as mimevault
 
 class Parser_Helper (object):
     """Abstract parser class. Updated 07/04/2009"""
     is_portal = False
-    embed_file_extensions = {"video/flv": "flv"} # Most supported sites only distribute flv files
     parser_type = "Generic"
     host_str = None
+    mime_base = mimevault.MimeVault ()
 
     def __init__ (self, video_id):
         self.video_id = video_id
@@ -30,15 +32,15 @@ class Parser_Helper (object):
 
 
     def setEmbedType (self, embed_type):
-        if embed_type in self.embed_file_extensions:
+        if self.__class__.mime_base.guess_extension (embed_type):
             self.embed_file_type = embed_type
 
 
     def getEmbedExtension (self):
-        return self.__class__.embed_file_extensions.get (self.embed_file_type, "flv")
-
-    def getImageString (self):
-        return "%s.png" % self.__class__.parser_type
+        ext = self.__class__.mime_base.guess_extension (self.embed_file_type)
+        if not ext:
+            ext = ".flv"
+        return ext
 
 
     class LoginRequired (Exception):
@@ -79,6 +81,16 @@ class Parser_Helper (object):
         commands = self._parsePlayerCommands (page_dump)
         download_url = self._parseRealURL (commands)
         headers = self._getContentInformation (download_url)
+        path = urllib2.urlparse.urlparse (download_url).path
+        testmime = self.__class__.mime_base.guess_type (path)
+        if testmime[0]:
+            self.embed_file_type = testmime[0]
+        else:
+            self.embed_file_type = headers["Content-Type"]
+        #print headers["Content-Type"]
+        #print self.embed_file_type
+        #print download_url
+        #print self.getEmbedExtension ()
         return title, download_url, headers
 
 

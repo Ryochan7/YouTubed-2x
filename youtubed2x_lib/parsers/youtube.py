@@ -20,11 +20,10 @@ class YouTube_Parser (Parser_Helper):
     video_embed_title_re = re.compile (r"&title=(\S+)&ftoken=")
 
     login_page = "http://www.youtube.com/signup"
-    embed_file_extensions = {"video/flv": "flv", "video/x-flv": "flv", "video/mp4": "mp4"}
     parser_type = "YouTube"
     domain_str = "http://www.youtube.com/"
     host_str = "youtube.com"
-    version = datetime.date (2009, 11, 28)
+    version = datetime.date (2009, 12, 5)
 
 
     def __init__ (self, video_id):

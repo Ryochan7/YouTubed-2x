@@ -9,7 +9,6 @@ class GoogleVideo_Parser (Parser_Helper):
     video_url_str = 'http://video.google.com/videoplay?docid=%s'
     video_title_re = re.compile (r'<title>([^<]*)</title>')
     video_url_params_re = re.compile (r"<a href=(?:\")?(http://v(\d+)\.(\S+)\.googlevideo.com/videoplayback\?(\S+))(?:\")?>")
-    embed_file_extensions = {"video/mp4": "mp4"}
     parser_type = "GoogleVideo"
     domain_str = "http://video.google.com/"
     host_str = "video.google.com"

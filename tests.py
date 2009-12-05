@@ -4,7 +4,7 @@ import youtubed2x_lib.other as other
 
 testURLs = ("http://www.youtube.com/watch?v=EjI4e3QEoPQ",
 "http://pornotube.com/media.php?m=1610782",
-#"http://www.redtube.com/9035",
+"http://www.redtube.com/9035",
 "http://www.veoh.com/videos/v1113892Awt5sqew", # Check Veoh native support
 "http://www.veoh.com/videos/v157834969D2enpjt", # Check Veoh portal support
 "http://www.youporn.com/watch/263247/little-hottie-decides-to-go-all-the-way-23/",
@@ -15,14 +15,15 @@ testURLs = ("http://www.youtube.com/watch?v=EjI4e3QEoPQ",
 "http://www.myvideo.de/watch/3026730/Ayumi_Hamasaki_Voyage",
 "http://vids.myspace.com/index.cfm?fuseaction=vids.individual&videoid=19941883&searchid=a8a1777e-b225-4199-9787-e51cd8f2df2c",
 "http://www.guba.com/watch/3000017203?duration_step=0&fields=23&filter_tiny=0&pp=40&query=kanon%202006&sb=10&set=-1&sf=0&size_step=0&o=1&sample=1225875586:e1ebff36f1214e71528291dcb086a919a88ca379",
-#"http://www.dailymotion.com/relevance/search/kanon%2B2006/video/x2myny_amv-kanon_school",
+"http://www.dailymotion.com/relevance/search/kanon%2B2006/video/x2myny_amv-kanon_school",
 "http://www.giantbomb.com/news/ogle-the-final-fantasy-xiii-trailer-repeatedly/872/",
-#"http://www.porn2pc.com/9035", # Example points to RedTube-style URL
-"http://www.screwattack.com/AVGN/JaguarPart1",
+"http://screwattack.com/videos/AVGN-Odyssey",
 "http://www.gametrailers.com/video/angry-video-screwattack/37368",
 "http://www.escapistmagazine.com/videos/view/zero-punctuation/789-Prototype",
 "http://video.yahoo.com/watch/125292/",
 )
+
+#testURLs = ("http://screwattack.com/videos/Hard-News-120409",)
 
 
 class ParseTest (unittest.TestCase):
@@ -51,6 +52,7 @@ class ParseTest (unittest.TestCase):
             self.assert_ (youtube_video, "The URL (%s) tested was invalid" % URL)
             print "Testing parser type: %s" % youtube_video.parser.getType ()
             youtube_video.getVideoInformation ()
+            #print youtube_video.flv_file
 
 
     def testPadding (self):
@@ -61,7 +63,7 @@ class ParseTest (unittest.TestCase):
         #youtube_video.setOutputRes (youtube_video.__class__.RES_640)
         
         # Testing against http://www.youtube.com/watch?v=_leYvPpmJGg specs
-        command_list = youtube_video.buildCommandList (384, 320, 180)
+        command_list = youtube_video.buildCommandList (96, 384, 320, 180)
         padtop = padbottom = None
         for i, value in enumerate (command_list):
             if value == "-padtop": padtop = command_list[i+1]
@@ -71,7 +73,7 @@ class ParseTest (unittest.TestCase):
         self.assertEqual (padbottom, "30")
 
         # Testing against http://www.giantbomb.com/50-cent-blood-on-the-sand-video-review/17-289/ specs
-        command_list = youtube_video.buildCommandList (384, 640, 368)
+        command_list = youtube_video.buildCommandList (96, 384, 640, 368)
         padtop = padbottom = None
         for i, value in enumerate (command_list):
             if value == "-padtop": padtop = command_list[i+1]
@@ -83,7 +85,7 @@ class ParseTest (unittest.TestCase):
 
         # Testing against http://video.google.com/videoplay?docid=-8378365891276905720 
         # specs
-        command_list = youtube_video.buildCommandList (384, 200, 240)
+        command_list = youtube_video.buildCommandList (96, 384, 200, 240)
         padleft = padright = None
         for i, value in enumerate (command_list):
             if value == "-padleft": padleft = command_list[i+1]

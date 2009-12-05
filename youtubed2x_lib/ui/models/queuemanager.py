@@ -13,6 +13,7 @@ class QueueManager (object):
     COLUMN_NAMES = {0: "url", 1: "title", 2: "progress", 3: "status", 4: "speed", 5: "size", 6: "eta"}
     signals = ["progress-update", "info-changed", "block-ui", "unblock-ui"]
     UPDATE_INTERVAL = .5 # In seconds
+    DOWNLOAD_UPDATE_INTERVAL = 1 # In seconds
 
 
     def __init__ (self, app_settings):
@@ -32,6 +33,12 @@ class QueueManager (object):
         self.tree_model = gtk.ListStore (gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_INT, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
         self.semaphore = Semaphore (self._sem_limit)
         self.sem_lock = Lock ()
+        self.download_semaphore = Semaphore (1)
+        self.download_lock = Lock ()
+        self.download_update_lock = Lock ()
+        self.download_limit = 1024 * 1024 # 400 KB
+        self.download_update = time.time ()
+        self.download_speed_total = 0
 
 
     def register (self, signal, observer):
@@ -257,4 +264,29 @@ class QueueManager (object):
         else:
             new_session.delete ()
 
+
+    def is_download_ready (self):
+        ready = False
+        self.download_lock.acquire ()
+        update_time = (time.time () - self.download_update) > self.__class__.DOWNLOAD_UPDATE_INTERVAL
+        #print "UPDATE TIME: %s" % update_time
+        #print "DOWNLOAD LIMIT EXCEED: %s" % self.download_speed_total >= self.download_limit
+        if not update_time and self.download_speed_total >= self.download_limit:
+            ready = False
+        elif not update_time and self.download_speed_total < self.download_limit:
+            ready = True
+        else:
+            self.download_update = time.time ()
+            self.download_speed_total = 0
+            ready = True
+
+        self.download_lock.release ()
+        return ready
+
+
+    def update_download_speed (self, block_in_bytes):
+        self.download_update_lock.acquire ()
+        self.download_speed_total += block_in_bytes
+        #print "NEW DOWNLOAD: %s" % self.download_speed_total
+        self.download_update_lock.release ()
 

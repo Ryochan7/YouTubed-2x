@@ -7,14 +7,13 @@ class ScrewAttack_Parser (Parser_Helper):
     """Parser for ScrewAttack pages. Updated 07/04/2009"""
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?screwattack\.com/(\S+)')
     video_url_str = 'http://www.screwattack.com/%s'
-    video_title_re = re.compile (r'vau.videoTitle = \'([^<]*)\';')
+    video_title_re = re.compile (r'gr.vau.videoTitle = \'([^\n]*)\';')
     video_url_params_re = re.compile (r"gr.vau.videoURL = '(\S+)'")
     video_url_hq_params_re = re.compile (r"gr.vau.videoURLHQ = '(\S+)'")
-    embed_file_extensions = {"video/mp4": "mp4"}
     parser_type = "ScrewAttack"
     domain_str = "http://www.screwattack.com/"
     host_str = "screwattack.com"
-    version = datetime.date (2009, 11, 28)
+    version = datetime.date (2009, 12, 5)
 
 
     def __init__ (self, video_id):
@@ -24,12 +23,13 @@ class ScrewAttack_Parser (Parser_Helper):
 
     def _parsePlayerCommands (self, page_dump):
         """Get the commands needed to get the video player"""
-#        match = self.__class__.video_url_hq_params_re.search (page_dump)
-#        if match:
-#            commands = match.groups ()
-#            return commands
-#        else:
-#            commands = None
+        match = self.__class__.video_url_hq_params_re.search (page_dump)
+        if match:
+            commands = match.groups ()
+            print "I GOT THE FUNK %s" % commands
+            return commands
+        else:
+            commands = None
 
         match = self.__class__.video_url_params_re.search (page_dump)
         if not match:

@@ -158,7 +158,7 @@ in a FAT32 filesystem. Incomplete"""
 
 
     def setFilePaths (self, directory):
-        flv_file = os.path.join (directory, "%s.%s" % (self.title, self.parser.getEmbedExtension ()))
+        flv_file = os.path.join (directory, "%s%s" % (self.title, self.parser.getEmbedExtension ()))
         self.setFlvFile (flv_file)
         avi_file = os.path.join (directory, self.getOutputFileName ())
         self.setOutputFile (avi_file)
@@ -188,7 +188,10 @@ in a FAT32 filesystem. Incomplete"""
             raise TypeError ("Video width must be an integer")
 
         ignore_mimetypes = ("audio/mpeg", "audio/mp3", "audio/ogg",)
-        if self.parser.getEmbedType () in ignore_mimetypes:
+        mimetype = self.parser.getEmbedType ()
+        if mimetype in ignore_mimetypes:
+            return []
+        elif not mimetype:
             return []
 
         video_controller = FfmpegController (self.flv_file)

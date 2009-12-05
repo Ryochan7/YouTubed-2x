@@ -9,11 +9,10 @@ class GameTrailers_Parser (Parser_Helper):
     video_url_str = 'http://www.gametrailers.com/video/%s'
     video_title_re = re.compile (r'<h1 class="movieTitle">([^<]*)</h1>')
     video_url_params_re = re.compile (r'<span class="Downloads">(?:\s+)<a href="(\S+)">Quicktime')
-    embed_file_extensions = {"video/quicktime": "mov"}
     parser_type = "GameTrailers"
     domain_str = "http://www.gametrailers.com/"
     host_str = "gametrailers.com"
-    version = datetime.date (2009, 11, 28)
+    version = datetime.date (2009, 12, 5)
 
 
     def __init__ (self, video_id):

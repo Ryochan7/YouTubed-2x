@@ -1,6 +1,6 @@
 import re
 import datetime
-from youtubed2x_lib.parsers import Parser_Helper, getPage
+from youtubed2x_lib.parsers import Parser_Helper, getPage, mimevault
 
 
 class YouPorn_Parser (Parser_Helper):
@@ -13,7 +13,7 @@ class YouPorn_Parser (Parser_Helper):
     parser_type = "YouPorn"
     domain_str = "http://www.youporn.com/"
     host_str = "youporn.com"
-    version = datetime.date (2009, 11, 28)
+    version = datetime.date (2009, 12, 5)
 
 
     def __init__ (self, video_id):
