@@ -4,7 +4,7 @@ from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
 class PacoPorn_Parser (Parser_Helper):
-    """Parser for PacoPorn pages. Updated 07/04/2009"""
+    """Parser for PacoPorn pages. Updated 01/15/2010"""
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?pacoporn\.com/viewVideo\.php\?video_id=(\d+)(?:&title=(\S+))?')
     domain_str = "http://www.pacoporn.com/"
     video_url_str = 'http://www.pacoporn.com/viewVideo.php?video_id=%s'
@@ -14,7 +14,7 @@ class PacoPorn_Parser (Parser_Helper):
     parser_type = "PacoPorn"
     domain_str = "http://www.pacoporn.com/"
     host_str = "pacoporn.com"
-    version = datetime.date (2009, 11, 28)
+    version = datetime.date (2010, 1, 15)
 
 
     def getVideoPage (self, account="", password=""):

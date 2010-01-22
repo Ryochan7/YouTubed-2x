@@ -29,9 +29,9 @@ class PornoTube_Parser (Parser_Helper):
         return page, newurl
 
 
-    def _parsePlayerCommands (self, page_dump):
+    def _parsePlayerCommands (self):
         """Get the commands needed to get the video player"""
-        match = self.video_url_id_re.search (page_dump)
+        match = self.video_url_id_re.search (self.page_dump)
         if not match:
             raise self.InvalidCommands ("Could not find flash player commands")
         else:

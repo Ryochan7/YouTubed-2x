@@ -1,3 +1,4 @@
+import gtk
 import gtk.glade
 
 class VideoItemMenu (object):

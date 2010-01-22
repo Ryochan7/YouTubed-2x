@@ -4,23 +4,25 @@ from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
 class Veoh_Parser (Parser_Helper):
-    """Parser for Veoh pages. Updated 07/04/2009"""
+    """Parser for Veoh pages. Updated 01/15/2010"""
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?veoh\.com/videos/(\w+)')
     video_url_str = 'http://www.veoh.com/videos/%s'
     video_detail_url = 'http://www.veoh.com/rest/video/%s/details'
+
     video_title_re = re.compile (r'\ttitle="(.*)"')
     video_url_params_re = re.compile (r'fullPreviewHashPath="(\S+)"')
     extern_content_re = re.compile (r'<contentSource id=')
     forward_link_re = re.compile (r'aowPermalink="(\S+)"')
+
     is_portal = True
     parser_type = "Veoh"
     domain_str = "http://www.veoh.com/"
     host_str = "veoh.com"
-    version = datetime.date (2009, 11, 28)
+    version = datetime.date (2010, 1, 15)
 
 
     def __init__ (self, video_id):
-        Parser_Helper.__init__ (self, video_id)
+        super (Veoh_Parser, self).__init__ (video_id)
         self.details_url = self.video_detail_url % video_id
 
 
@@ -31,6 +33,7 @@ class Veoh_Parser (Parser_Helper):
             content_match = self.forward_link_re.search (page)
             page = ""
             newurl = content_match.group (1)
+        self.page_dump = page
         return page, newurl
 
     def _parseRealURL (self, commands):

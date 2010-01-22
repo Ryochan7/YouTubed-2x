@@ -14,7 +14,7 @@ testURLs = ("http://www.youtube.com/watch?v=EjI4e3QEoPQ",
 "http://www.tube8.com/hardcore/amazing-hentai-lesbian-scene/23954/",
 "http://www.myvideo.de/watch/3026730/Ayumi_Hamasaki_Voyage",
 "http://vids.myspace.com/index.cfm?fuseaction=vids.individual&videoid=19941883&searchid=a8a1777e-b225-4199-9787-e51cd8f2df2c",
-"http://www.guba.com/watch/3000017203?duration_step=0&fields=23&filter_tiny=0&pp=40&query=kanon%202006&sb=10&set=-1&sf=0&size_step=0&o=1&sample=1225875586:e1ebff36f1214e71528291dcb086a919a88ca379",
+"http://www.guba.com/watch/3000017203",
 "http://www.dailymotion.com/relevance/search/kanon%2B2006/video/x2myny_amv-kanon_school",
 "http://www.giantbomb.com/news/ogle-the-final-fantasy-xiii-trailer-repeatedly/872/",
 "http://screwattack.com/videos/AVGN-Odyssey",
@@ -23,7 +23,7 @@ testURLs = ("http://www.youtube.com/watch?v=EjI4e3QEoPQ",
 "http://video.yahoo.com/watch/125292/",
 )
 
-#testURLs = ("http://screwattack.com/videos/Hard-News-120409",)
+#testURLs = ("http://www.escapistmagazine.com/videos/view/zero-punctuation/789-Prototype",)
 
 
 class ParseTest (unittest.TestCase):

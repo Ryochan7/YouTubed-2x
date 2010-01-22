@@ -1,7 +1,9 @@
 import os
 import sys
+import glob
 from distutils.core import setup
 from youtubed2x_lib.other import VERSION, WINDOWS
+from utils import compile_po_messages
 
 
 stuff = {
@@ -9,7 +11,7 @@ stuff = {
     "version": VERSION,
     "description": "Download and transcode flash video to GP2X video files",
     "author": "Travis Nickles",
-    "url": "http://ryochan7.webfactional.com/",
+    "url": "http://www.ryochan7.com/",
     "scripts": ["youtubed-2x", "youtubed-2x_gui"],
     "packages": ["youtubed2x_lib", "youtubed2x_lib.parsers", "youtubed2x_lib.ui", "youtubed2x_lib.ui.controllers", "youtubed2x_lib.ui.exceptions", "youtubed2x_lib.ui.models", "youtubed2x_lib.ui.views"],
 
@@ -18,6 +20,17 @@ stuff = {
 
     "license": "GPL3",
 }
+
+#if not WINDOWS:
+#    compile_po_messages.make ()
+
+trans_files = []
+for mofile in glob.glob (os.path.join ("i18n", "*", "LC_MESSAGES", "youtubed-2x.mo")):
+    locale_dir = os.path.basename (os.path.dirname (os.path.dirname (mofile)))
+    trans_files.append ((os.path.join ("share", "locale", locale_dir, "LC_MESSAGES"), [mofile]))
+
+if len (trans_files) > 0:
+    stuff["data_files"].extend (trans_files)
 
 
 if WINDOWS:

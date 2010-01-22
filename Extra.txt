@@ -60,3 +60,25 @@ the GUI version.
 
 http://downloads.sourceforge.net/gladewin32/gtk-2.12.9-win32-1.exe
 
+==============================================================================
+
+01-22-2010
+
+On Windows, the runtime dependencies for running the source code version (non-frozen release)
+are as follows:
+
+Python
+http://www.python.org/
+
+PyCairo, PyGObject, PyGTK
+http://www.pygtk.org/
+
+GTK+ Runtime
+http://downloads.sourceforge.net/gladewin32/
+
+ffmpeg (install to bin folder within youtubed-2x project folder)
+http://ffmpeg.arrozcru.org/builds/
+
+Pywin32
+http://sourceforge.net/projects/pywin32/
+

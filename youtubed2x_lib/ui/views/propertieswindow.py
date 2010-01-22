@@ -8,6 +8,7 @@ class PropertiesWindow (object):
         self.ffmpeg_chooser = self.window.get_widget ("ffmpeg_chooser")
         self.sitedirs_check = self.window.get_widget ("sitedirs")
         self.process_limit_spin = self.window.get_widget ("process_limit_spinbutton")
+        #self.dlspeedlimit_spin = self.window.get_widget ("dlspeedlimit_spinbutton")
 
         self.proxy_server_text = self.window.get_widget ("proxy_server_text")
         self.proxy_port_spin = self.window.get_widget ("proxy_port_spin")
@@ -34,6 +35,7 @@ class PropertiesWindow (object):
         self.proxy_server_text.set_text (app_settings.proxy_server)
         self.proxy_port_spin.set_value (app_settings.proxy_port)
         self.process_limit_spin.set_value (app_settings.process_limit)
+        #self.dlspeedlimit_spin.set_value (app_settings.download_speed_limit)
 
 
     def show (self):

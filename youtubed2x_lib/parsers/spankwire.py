@@ -4,19 +4,21 @@ from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
 class SpankWire_Parser (Parser_Helper):
-    """Parser for SpankWire pages. Updated 08/25/2009"""
+    """Parser for SpankWire pages. Updated 01/15/2010"""
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?spankwire\.com/((\S+)/video(\d+))(?:\?(.*))?')
     video_url_str = 'http://www.spankwire.com/%s/'
+
     video_title_re = re.compile (r'<title>([^<]+)</title>')
     video_details_xml_url = "http://www.spankwire.com/Player/VideoXML.aspx?id=%s"
     video_url_params_re = re.compile (r'<url type="string">(\S+)</url>')
+
     parser_type = "SpankWire"
     domain_str = "http://www.spankwire.com/"
     host_str = "spankwire.com"
-    version = datetime.date (2009, 11, 28)
+    version = datetime.date (2010, 1, 15)
 
 
-    def _parsePlayerCommands (self, page_dump):
+    def _parsePlayerCommands (self):
         """Get the commands needed to get the video player"""
         page, newurl = getPage (self.__class__.video_details_xml_url % self.video_id.rsplit ("/video", 1)[1])
 

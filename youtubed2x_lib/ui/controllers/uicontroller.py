@@ -42,6 +42,8 @@ class UiController (object):
 
         self.video_queue.register ("unblock-ui", self.unlock_partial_ui)
         self.video_queue.register ("block-ui", self.block_partial_ui)
+        self.video_queue.register ("speed_progress_update", self.ui.update_speed_statusbar)
+        self.video_queue.register ("progress_update", self.ui.update_statusbar)
 
         # Populate sites_textview with hooks to controller methods when moving over text
         # and clicking on links

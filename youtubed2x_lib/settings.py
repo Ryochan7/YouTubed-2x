@@ -15,13 +15,12 @@ class Settings (object):
 
 
     def readConfigFile (self):
-
         if not os.path.exists (self.config_file_location):
             print "Config file does not exist. Skipping."
             return
 
         string_keys = ("output_dir", "format", "ffmpeg_location", "proxy_server")
-        int_keys = ("vbitrate", "abitrate", "output_res", "proxy_port", "process_limit")
+        int_keys = ("vbitrate", "abitrate", "output_res", "proxy_port", "process_limit", "download_speed_limit")
         boolean_keys = ("keep_flv_files", "overwrite", "transcode", "sitedirs", "use_proxy", "auto_download")
 
         config = ConfigParser.ConfigParser ()
@@ -66,7 +65,6 @@ class Settings (object):
 
 
     def writeConfigFile (self):
-
         if not os.path.isdir (self.config_dir):
             os.mkdir (self.config_dir)
 
@@ -101,6 +99,7 @@ class Settings (object):
 
         config.set ("settings", "process_limit", self.process_limit)
         config.set ("settings", "auto_download", self.auto_download)
+        config.set ("settings", "download_speed_limit", self.download_speed_limit)
         config.write (file)
         file.close ()
         return
@@ -147,6 +146,7 @@ class Settings (object):
         self.proxy_port = 1
         self.process_limit = 4
         self.auto_download = True
+        self.download_speed_limit = 0 # In KBps. 0 means no limit
 
         #print self.ffmpeg_location
 
@@ -381,5 +381,18 @@ class Settings (object):
             raise TypeError ("auto_download value must be a boolean")
 
     auto_download = property (_get_auto_download, _set_auto_download)
+
+    def _get_download_speed_limit (self):
+        return self._download_speed_limit
+
+    def _set_download_speed_limit (self, value):
+        if isinstance (value, (int, long,)) and value >= 0:
+            self._download_speed_limit = value
+        elif value < 0:
+            raise TypeError ("download_speed_limit value must be 0 or greater. Passed value: %s" % value)
+        else:
+            raise TypeError ("download_speed_limit value must be an int or long")
+
+    download_speed_limit = property (_get_download_speed_limit, _set_download_speed_limit)
 
 

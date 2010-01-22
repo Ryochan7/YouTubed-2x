@@ -1,6 +1,7 @@
 import os, sys
 import re
 import subprocess
+import mimetypes
 from other import WINDOWS
 from ffmpeg_control import FfmpegController
 
@@ -187,11 +188,14 @@ in a FAT32 filesystem. Incomplete"""
         elif width and not isinstance (width, int):
             raise TypeError ("Video width must be an integer")
 
-        ignore_mimetypes = ("audio/mpeg", "audio/mp3", "audio/ogg",)
-        mimetype = self.parser.getEmbedType ()
-        if mimetype in ignore_mimetypes:
+#        ignore_mimetypes = ("audio/mpeg", "audio/mp3", "audio/ogg",)
+#        mimetype = self.parser.getEmbedType ()
+#        print "OLD METHOD: %s" % self.parser.getEmbedType ()
+        mimetype = mimetypes.guess_type (self.flv_file)[0]
+#        print "NEW METHOD: %s" % mimetype
+        if not mimetype:
             return []
-        elif not mimetype:
+        elif not mimetype.startswith ("video/"):
             return []
 
         video_controller = FfmpegController (self.flv_file)

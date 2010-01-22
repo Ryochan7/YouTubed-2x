@@ -4,20 +4,17 @@ from youtubed2x_lib.parsers import Parser_Helper
 
 
 class GameTrailers_Parser (Parser_Helper):
-    """Parser for GameTrailers pages. Updated 07/04/2009"""
+    """Parser for GameTrailers pages. Updated 01/15/2010"""
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?gametrailers\.com/video/(\S+)')
     video_url_str = 'http://www.gametrailers.com/video/%s'
+
     video_title_re = re.compile (r'<h1 class="movieTitle">([^<]*)</h1>')
     video_url_params_re = re.compile (r'<span class="Downloads">(?:\s+)<a href="(\S+)">Quicktime')
+
     parser_type = "GameTrailers"
     domain_str = "http://www.gametrailers.com/"
     host_str = "gametrailers.com"
-    version = datetime.date (2009, 12, 5)
-
-
-    def __init__ (self, video_id):
-        super (GameTrailers_Parser, self).__init__ (video_id)
-        self.embed_file_type = "video/quicktime"
+    version = datetime.date (2010, 1, 15)
 
 
     def _parseRealURL (self, commands):

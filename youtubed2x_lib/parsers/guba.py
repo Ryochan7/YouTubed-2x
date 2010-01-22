@@ -1,17 +1,31 @@
 import re
 import datetime
-from youtubed2x_lib.parsers import Parser_Helper
+from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 class Guba_Parser (Parser_Helper):
     """Parser for Guba pages. Updated 07/04/2009"""
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?guba\.com/watch/(\d+)')
     video_url_str = 'http://www.guba.com/watch/%s'
-    video_title_re = re.compile (r'var theName="([\S ]+)";')
-    video_url_params_re = re.compile (r'"(\S+)" \);\r\n(?:[ ]{32})bfp.writeBlogFlashPlayer\(\);')
+    video_json_url = "http://www.guba.com/player?bid=%s"
+
+    video_title_re = re.compile (r"'([\S ]+)' posted by ")
+    video_url_params_re = re.compile (r'"url":"([^"]+)"')
+
     parser_type = "Guba"
     domain_str = "http://www.guba.com/"
     host_str = "guba.com"
-    version = datetime.date (2009, 11, 28)
+    version = datetime.date (2010, 1, 15)
+
+
+    def _parsePlayerCommands (self):
+        """Get the commands needed to get the video player"""
+        page, newurl = getPage (self.__class__.video_json_url % self.video_id)
+        match = self.__class__.video_url_params_re.search (page)
+        if not match:
+            raise self.__class__.InvalidCommands ("Could not find flash player commands")
+        else:
+            commands = match.groups ()
+        return commands
 
 
     def _parseRealURL (self, commands):

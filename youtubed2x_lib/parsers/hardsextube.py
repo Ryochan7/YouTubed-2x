@@ -4,7 +4,7 @@ from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
 class HardSexTube_Parser (Parser_Helper):
-    """Parser for SpankWire pages. Updated 08/25/2009"""
+    """Parser for SpankWire pages. Updated 01/15/2010"""
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?hardsextube\.com/video/(\d+)(?:/.*)?')
     video_url_str = 'http://www.hardsextube.com/video/%s/'
     video_title_re = re.compile (r'<h1>([^<]+)</h1>')
@@ -13,14 +13,14 @@ class HardSexTube_Parser (Parser_Helper):
     parser_type = "HardSexTube"
     domain_str = "http://www.hardsextube.com/"
     host_str = "hardsextube.com"
-    version = datetime.date (2009, 11, 28)
+    version = datetime.date (2010, 1, 15)
 
 
-    def _parsePlayerCommands (self, page_dump):
+    def _parsePlayerCommands (self):
         """Get the commands needed to get the video player"""
         page, newurl = getPage (self.__class__.video_details_xml_url % self.video_id)
 
-        match = self.video_url_params_re.search (page)
+        match = self.video_url_params_re.search (self.page_dump)
         if not match:
             raise self.__class__.InvalidCommands ("Could not find flash player commands")
         else:

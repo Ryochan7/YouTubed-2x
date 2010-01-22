@@ -4,7 +4,7 @@ from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
 class MySpaceTV_Parser (Parser_Helper):
-    """Parser for MySpaceTV pages. Updated 07/04/2009"""
+    """Parser for MySpaceTV pages. Updated 01/15/2010"""
     const_video_url_re = re.compile (r'^(?:http://)?vids\.myspace\.com/index\.cfm\?fuseaction=vids\.individual&(?:v|V)ideo(?:id|ID)=(\d+)')
     video_url_str = 'http://vids.myspace.com/index.cfm?fuseaction=vids.individual&videoid=%s'
     video_details_str = "http://mediaservices.myspace.com/services/rss.ashx?videoID=%s&type=video"
@@ -13,11 +13,12 @@ class MySpaceTV_Parser (Parser_Helper):
     parser_type = "MySpaceTV"
     domain_str = "http://vids.myspace.com/"
     host_str = "vids.myspace.com"
-    version = datetime.date (2009, 11, 28)
+    version = datetime.date (2010, 1, 15)
 
 
     def getVideoPage (self, account="", password=""):
         page, newurl = getPage (self.video_details_str % self.video_id)
+        self.page_dump = page
         return page, newurl
 
 

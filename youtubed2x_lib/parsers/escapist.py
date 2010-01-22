@@ -5,16 +5,18 @@ from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
 class Escapist_Parser (Parser_Helper):
-    """Parser for The Escapist pages. Updated 07/04/2009"""
+    """Parser for The Escapist pages. Updated 01/15/2010"""
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?escapistmagazine\.com/videos/view/(\S+)')
     video_url_str = 'http://www.escapistmagazine.com/videos/view/%s'
+
     video_title_re = re.compile (r'<title>The Escapist : Video Galleries : ([^<]*)</title>')
     video_url_params_re = re.compile (r'&quot;config=(\S+)%3Fembed%3D1&quot;')
-    video_url_real_str_re = re.compile (r'},{\'url\':\'(\S+)\',\'scaling')
+    video_url_real_str_re = re.compile (r"},{'url':'([^']+)'")
+
     parser_type = "The Escapist"
     domain_str = "http://www.escapistmagazine.com/"
     host_str = "escapistmagazine.com"
-    version = datetime.date (2009, 11, 28)
+    version = datetime.date (2010, 1, 15)
 
 
     def _parseRealURL (self, commands):

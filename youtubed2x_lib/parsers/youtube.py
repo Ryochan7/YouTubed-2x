@@ -5,25 +5,24 @@ from youtubed2x_lib.parsers import Parser_Helper, getPage, PageNotFound
 
 
 class YouTube_Parser (Parser_Helper):
-    """Parser for YouTube pages. Updated 07/04/2009"""
+    """Parser for YouTube pages. Updated 01/15/2010"""
     # URLs and RegExp statements from youtube-dl (some slightly modified)
     const_video_url_re = re.compile (r'^(?:http://)?(?:\w+\.)?youtube\.com/(?:v/|(?:watch(?:\.php)?)?\?(?:.+&)?v=)?([0-9A-Za-z_-]+)(?(1)[&/].*)?$')
     video_url_str = 'http://www.youtube.com/watch?v=%s'
     video_url_real_str = 'http://www.youtube.com/get_video?video_id=%s&t=%s'
     video_url_real_high_str = "%s&fmt=18" % video_url_real_str
+    video_embed_info_url = "http://www.youtube.com/get_video_info?&video_id=%s&el=embedded"
+
     video_title_re = re.compile (r'<link rel="alternate" type="application/json\+oembed" href="(?:.*)" title="([^<]*)"(?:[ ]+)?/>')
     video_url_params_re = re.compile (r', "t": "([^"]+)"')
     login_required_re = re.compile (r"^http://www.youtube.com/verify_age\?(?:&)?next_url=/watch")
-
-    video_embed_info_url = "http://www.youtube.com/get_video_info?&video_id=%s&el=embedded"
     video_embed_video_re = re.compile (r"status=ok&.*author=(?:[^&]+)&watermark=.*&token=([^&]+)&thumbnail_url")
     video_embed_title_re = re.compile (r"&title=(\S+)&ftoken=")
 
-    login_page = "http://www.youtube.com/signup"
     parser_type = "YouTube"
     domain_str = "http://www.youtube.com/"
     host_str = "youtube.com"
-    version = datetime.date (2009, 12, 5)
+    version = datetime.date (2010, 1, 15)
 
 
     def __init__ (self, video_id):
@@ -40,7 +39,7 @@ class YouTube_Parser (Parser_Helper):
 
         # If login information is required,
         # use the information used for the embed player
-        if self.login_required_re.match (newurl):
+        if self.__class__.login_required_re.match (newurl):
             self.requires_login = True
             embed_info_url = self.__class__.video_embed_info_url % self.video_id
             page, newurl = getPage (embed_info_url)
@@ -49,9 +48,9 @@ class YouTube_Parser (Parser_Helper):
         return page, newurl
 
 
-    def _parseTitle (self, page_dump):
+    def _parseTitle (self):
         if self.requires_login:
-            match = self.__class__.video_embed_title_re.search (page_dump)
+            match = self.__class__.video_embed_title_re.search (self.page_dump)
             if match:
                 title = match.group (1)
                 title = title.replace ("+", " ")
@@ -59,7 +58,7 @@ class YouTube_Parser (Parser_Helper):
                 raise self.__class__.UnknownTitle ("Could not find the title from embed information")
 
         else:
-            match = self.video_title_re.search (page_dump)
+            match = self.__class__.video_title_re.search (self.page_dump)
             if not match:
                 raise self.__class__.UnknownTitle ("Could not find the title from page")
             else:
@@ -68,10 +67,10 @@ class YouTube_Parser (Parser_Helper):
         return title
 
 
-    def _parsePlayerCommands (self, page_dump):
+    def _parsePlayerCommands (self):
         """Get the commands needed to get the video player"""
         if self.requires_login:
-            newmatch = self.__class__.video_embed_video_re.search (page_dump)
+            newmatch = self.__class__.video_embed_video_re.search (self.page_dump)
 #            print page_dump
             if newmatch:
 #                print newmatch.groups ()
@@ -79,7 +78,7 @@ class YouTube_Parser (Parser_Helper):
             else:
                 raise self.__class__.InvalidCommands ("Could not find token from embed player")
         else:
-            match = self.video_url_params_re.search (page_dump)
+            match = self.__class__.video_url_params_re.search (self.page_dump)
             if not match:
                 raise self.__class__.InvalidCommands ("Could not find flash player commands")
 
@@ -91,7 +90,7 @@ class YouTube_Parser (Parser_Helper):
         """Get the real url for the video"""
         token = commands[0]
         # First, attempt to get a high quality version
-        secondary_url = self.video_url_real_high_str % (self.video_id, token)
+        secondary_url = self.__class__.video_url_real_high_str % (self.video_id, token)
         obtained_url = False
         content_type = self.embed_file_type
 
@@ -103,7 +102,7 @@ class YouTube_Parser (Parser_Helper):
 
         # Get standard quality if no high quality video exists
         if not obtained_url:
-            secondary_url = self.video_url_real_str % (self.video_id, token)
+            secondary_url = self.__class__.video_url_real_str % (self.video_id, token)
             page, real_url, headers = getPage (secondary_url, read_page=False, get_headers=True)
 
         # Test should not be necessary if it got this far

@@ -18,9 +18,9 @@ class YahooVideo_Parser (Parser_Helper):
     version = datetime.date (2009, 11, 28)
 
 
-    def _parsePlayerCommands (self, page_dump):
+    def _parsePlayerCommands (self):
         """Get the commands needed to get the video player"""
-        match = self.__class__.video_details_re.search (page_dump)
+        match = self.__class__.video_details_re.search (self.page_dump)
         if not match:
             raise self.__class__.InvalidCommands ("Could not find flash player commands")
         else:
@@ -39,6 +39,7 @@ class YahooVideo_Parser (Parser_Helper):
     def _parseRealURL (self, commands):
         """Get the real url for the video"""
         if commands[0].startswith ("rtmp://"):
+#            print "%s/%s" % (commands[0], commands[1])
             raise self.__class__.InvalidCommands ("RTMP service not supported")
 
         path = commands[1]

@@ -63,6 +63,9 @@ class PropertiesWinController (object):
             self.app_settings.process_limit = temp
             self.video_queue.alter_sem (self.app_settings.process_limit)
 
+        #self.app_settings.download_speed_limit = self.ui.dlspeedlimit_spin.get_value_as_int ()
+        #self.video_queue.setDownloadLimit (self.app_settings.download_speed_limit)
+
         self.ui.main_window.hide ()
 
 

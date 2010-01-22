@@ -21,17 +21,16 @@ class ScrewAttack_Parser (Parser_Helper):
         self.embed_file_type = "video/mp4"
 
 
-    def _parsePlayerCommands (self, page_dump):
+    def _parsePlayerCommands (self):
         """Get the commands needed to get the video player"""
-        match = self.__class__.video_url_hq_params_re.search (page_dump)
+        match = self.__class__.video_url_hq_params_re.search (self.page_dump)
         if match:
             commands = match.groups ()
-            print "I GOT THE FUNK %s" % commands
             return commands
         else:
             commands = None
 
-        match = self.__class__.video_url_params_re.search (page_dump)
+        match = self.__class__.video_url_params_re.search (self.page_dump)
         if not match:
             raise self.__class__.InvalidCommands ("Could not find flash player commands")
         else:

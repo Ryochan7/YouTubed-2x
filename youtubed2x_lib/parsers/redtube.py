@@ -25,7 +25,7 @@ class RedTube_Parser (Parser_Helper):
         return page, newurl
 
 
-    def _parsePlayerCommands (self, page_dump):
+    def _parsePlayerCommands (self):
         """Get the parent folder index number and file index number for the download url"""
         # Weird ass algorithm used to help figure out the path for the .flv file.
         # Python interpretation of algorithm used for RedTube Downloader

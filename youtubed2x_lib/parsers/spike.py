@@ -5,7 +5,7 @@ from youtubed2x_lib.parsers import Parser_Helper, getPage
 
 
 class Spike_Parser (Parser_Helper):
-    """Parser for SpikeTv pages. Updated 08/25/2009"""
+    """Parser for SpikeTv pages. Updated 01/15/2010"""
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?spike\.com/video/((\S+)/(\d+))')
     video_url_str = 'http://www.spike.com/video/%s'
     video_details_xml_url = "http://www.spike.com/ui/xml/mediaplayer/mediagen.groovy?videoId=%s"
@@ -14,10 +14,10 @@ class Spike_Parser (Parser_Helper):
     parser_type = "Spike"
     domain_str = "http://www.spike.com/"
     host_str = "spike.com"
-    version = datetime.date (2009, 11, 28)
+    version = datetime.date (2010, 1, 15)
 
 
-    def _parsePlayerCommands (self, page_dump):
+    def _parsePlayerCommands (self):
         """Get the commands needed to get the video player"""
         page, newurl = getPage (self.__class__.video_details_xml_url % self.video_id.rsplit ("/", 1)[1])
         match = self.video_url_params_re.search (page)

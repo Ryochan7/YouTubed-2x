@@ -8,11 +8,12 @@ class Tube8_Parser (Parser_Helper):
     const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?tube8\.com/(\S+/\S+/\d+)(?:/)?$')
     video_url_str = 'http://www.tube8.com/%s/'
     video_title_re = re.compile (r'">([\S ]+)</h1>')
-    video_url_params_re = re.compile (r'param name="FlashVars" value="videoUrl=(\S+)&amp;imageUrl=')
+#    video_url_params_re = re.compile (r'param name="FlashVars" value="videoUrl=(\S+)&amp;imageUrl=')
+    video_url_params_re = re.compile (r"flashvars.videoUrl = '(\S+)';")
     parser_type = "Tube8"
     domain_str = "http://www.tube8.com/"
     host_str = "tube8.com"
-    version = datetime.date (2009, 11, 28)
+    version = datetime.date (2010, 1, 15)
 
 
     def _parseRealURL (self, commands):

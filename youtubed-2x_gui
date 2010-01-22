@@ -10,8 +10,69 @@ import gtk.glade
 import gobject
 import pango
 import webbrowser
-from youtubed2x_lib.videoitem import VideoItem
+
 from youtubed2x_lib.other import VERSION, APP_NAME, WINDOWS
+
+# Translation stuff
+import gettext
+import locale
+
+lc, enc = locale.getdefaultlocale ()
+
+if os.path.exists (os.path.join (os.path.dirname (sys.argv[0]), "i18n")):
+    # Running locally
+    #print "Running local"
+    gettext.bindtextdomain ("youtubed-2x", "i18n")
+    lc, enc = locale.getdefaultlocale ()
+    lang = gettext.translation ("youtubed-2x", "i18n", languages=[lc], fallback=True)
+    #print lang
+    lang.install ()
+    #gettext.install ("youtubed-2x", "i18n")
+    gtk.glade.bindtextdomain ("youtubed-2x", "i18n")
+elif gettext.find ("youtubed-2x"):
+    # Installed. .mo file is in default locale location
+    #print "Found default locale"
+    gettext.install ("youtubed-2x")
+    gtk.glade.bindtextdomain ("youtubed-2x")
+elif WINDOWS and os.path.exists (os.path.join (sys.prefix, "share", "locale")):
+    # Windows when using build made with Py2exe
+    #print "Py2exe build"
+    locale_dir = os.path.join (sys.prefix, "share", "locale")
+    gettext.bindtextdomain ("youtubed-2x", locale_dir)
+    lang = gettext.translation("youtubed-2x", locale_dir, languages=[lc], fallback=True)
+    #print lang
+    lang.install ()
+    #gettext.install ("youtubed-2x", "i18n")
+    gtk.glade.bindtextdomain ("youtubed-2x", locale_dir)
+else:
+    # Installed. Try to discover locale location
+    #print "Installed"
+    locale_dir = None
+    if "XDG_DATA_DIRS" in os.environ:
+        data_dirs = os.environ["XDG_DATA_DIRS"].split (":")
+        for data_dir in data_dirs:
+            mofile = gettext.find ("youtubed-2x", os.path.join (data_dir, "locale"))
+#            #print mofile
+            if mofile:
+                locale_dir = os.path.join (data_dir, "locale")
+                break
+
+    #print locale_dir
+    if locale_dir:
+        gettext.install ("youtubed-2x", locale_dir)
+        gtk.glade.bindtextdomain ("youtubed-2x", locale_dir)
+    else:
+        # If .mo file could not be found, ignore the issue.
+        # Non-translated strings will be used. Install _()
+        # to global namespace
+        gettext.install ("youtubed-2x")
+        gtk.glade.bindtextdomain ("youtubed-2x")
+
+#gettext.install ("youtubed-2x")
+gtk.glade.textdomain ("youtubed-2x")
+#print _
+
+from youtubed2x_lib.videoitem import VideoItem
 import youtubed2x_lib.settings as settings
 from youtubed2x_lib.parsermanager import ParserManager as parser_manager
 from youtubed2x_lib.ui.views.propertieswindow import PropertiesWindow
@@ -30,6 +91,13 @@ class YouTubeDownloader (object):
         if interval:
             gobject.timeout_add (interval, self.update_statusbar)
 
+
+    def update_speed_statusbar (self, message=None):
+        if message == None:
+            self.speed_statusbar.pop (self.statusbar_context_id)
+        else:
+            self.speed_statusbar.pop (self.statusbar_context_id)
+            self.speed_statusbar.push (self.statusbar_context_id, message)
 
 
     def show_about_window (self):
@@ -166,7 +234,8 @@ class YouTubeDownloader (object):
         self.folder_chooser = self.window.get_widget ("filechooserbutton1")
         self.folder_chooser.set_current_folder (app_settings.output_dir)
         self.statusbar = self.window.get_widget ("statusbar1")
-        #self.speed_label = self.window.get_widget ("speedlabel")
+        self.speed_statusbar = self.window.get_widget ("statusbar2")
+#        self.speed_label = self.window.get_widget ("speedlabel")
         self.statusbar_context_id = self.statusbar.get_context_id ("Statusbar")
         self.pause_toolbutton = self.window.get_widget ("pause_toolbutton")
 #       self.update_statusbar ("HAMTARO")
