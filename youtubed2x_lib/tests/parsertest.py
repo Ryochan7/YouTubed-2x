@@ -24,7 +24,7 @@ test_dict = {
     "yahoovideo": "http://video.yahoo.com/watch/125292/",
 }
 
-class ParseTest (unittest.TestCase):
+class ParserTest (unittest.TestCase):
     parser_manager.importParsers ()
 
     def test_page_download (self):
@@ -33,119 +33,86 @@ class ParseTest (unittest.TestCase):
         page, newurl = other.getPage (test_dict["youtube"])
         self.assert_ (page)
 
-    def test_youtube_parser (self):
-        url = test_dict["youtube"]
+    def _get_information (self, url):
         video = parser_manager.validateURL (url)
         self.assert_ (video, "The URL (%s) tested was invalid" % url)
         video.getVideoInformation ()
+
+    def test_youtube_parser (self):
+        url = test_dict["youtube"]
+        self._get_information(url)
         
     def test_pornotube_parser (self):
         url = test_dict["pornotube"]
-        video = parser_manager.validateURL (url)
-        self.assert_ (video, "The URL (%s) tested was invalid" % url)
-        video.getVideoInformation ()
+        self._get_information(url)
 
     def test_redtube_parser (self):
         url = test_dict["redtube"]
-        video = parser_manager.validateURL (url)
-        self.assert_ (video, "The URL (%s) tested was invalid" % url)
-        video.getVideoInformation ()
+        self._get_information(url)
 
     def test_veoh_parser (self):
         url = test_dict["veoh"]
-        video = parser_manager.validateURL (url)
-        self.assert_ (video, "The URL (%s) tested was invalid" % url)
-        video.getVideoInformation ()
+        self._get_information(url)
 
     def test_veoh_portal_parser (self):
         url = test_dict["veoh_portal"]
-        video = parser_manager.validateURL (url)
-        self.assert_ (video, "The URL (%s) tested was invalid" % url)
-        video.getVideoInformation ()
+        self._get_information(url)
 
     def test_youporn_parser (self):
         url = test_dict["youporn"]
-        video = parser_manager.validateURL (url)
-        self.assert_ (video, "The URL (%s) tested was invalid" % url)
-        video.getVideoInformation ()
+        self._get_information(url)
 
     def test_google_video_parser (self):
         url = test_dict["google_video"]
-        video = parser_manager.validateURL (url)
-        self.assert_ (video, "The URL (%s) tested was invalid" % url)
-        video.getVideoInformation ()
+        self._get_information(url)
 
     def test_metacafe_parser (self):
         url = test_dict["metacafe"]
-        video = parser_manager.validateURL (url)
-        self.assert_ (video, "The URL (%s) tested was invalid" % url)
-        video.getVideoInformation ()
+        self._get_information(url)
 
     def test_pornhub_parser (self):
         url = test_dict["pornhub"]
-        video = parser_manager.validateURL (url)
-        self.assert_ (video, "The URL (%s) tested was invalid" % url)
-        video.getVideoInformation ()
+        self._get_information(url)
 
     def test_tube8_parser (self):
         url = test_dict["tube8"]
-        video = parser_manager.validateURL (url)
-        self.assert_ (video, "The URL (%s) tested was invalid" % url)
-        video.getVideoInformation ()
+        self._get_information(url)
 
     def test_myvideo_parser (self):
         url = test_dict["myvideo"]
-        video = parser_manager.validateURL (url)
-        self.assert_ (video, "The URL (%s) tested was invalid" % url)
-        video.getVideoInformation ()
+        self._get_information(url)
 
     def test_myspacetv_parser (self):
         url = test_dict["myspacetv"]
-        video = parser_manager.validateURL (url)
-        self.assert_ (video, "The URL (%s) tested was invalid" % url)
-        video.getVideoInformation ()
+        self._get_information(url)
 
     def test_guba_parser (self):
         url = test_dict["guba"]
-        video = parser_manager.validateURL (url)
-        self.assert_ (video, "The URL (%s) tested was invalid" % url)
-        video.getVideoInformation ()
+        self._get_information(url)
 
     def test_dailymotion_parser (self):
         url = test_dict["dailymotion"]
-        video = parser_manager.validateURL (url)
-        self.assert_ (video, "The URL (%s) tested was invalid" % url)
-        video.getVideoInformation ()
+        self._get_information(url)
 
     def test_giantbomb_parser (self):
         url = test_dict["giantbomb"]
-        video = parser_manager.validateURL (url)
-        self.assert_ (video, "The URL (%s) tested was invalid" % url)
-        video.getVideoInformation ()
+        self._get_information(url)
 
     def test_screwattack_parser (self):
         url = test_dict["screwattack"]
-        video = parser_manager.validateURL (url)
-        self.assert_ (video, "The URL (%s) tested was invalid" % url)
-        video.getVideoInformation ()
+        self._get_information(url)
 
     def test_gametrailers_parser (self):
         url = test_dict["gametrailers"]
-        video = parser_manager.validateURL (url)
-        self.assert_ (video, "The URL (%s) tested was invalid" % url)
-        video.getVideoInformation ()
+        self._get_information(url)
 
     def test_escapistmagazine_parser (self):
         url = test_dict["escapistmagazine"]
-        video = parser_manager.validateURL (url)
-        self.assert_ (video, "The URL (%s) tested was invalid" % url)
-        video.getVideoInformation ()
+        self._get_information(url)
 
     def test_yahoovideo_parser (self):
         url = test_dict["yahoovideo"]
-        video = parser_manager.validateURL (url)
-        self.assert_ (video, "The URL (%s) tested was invalid" % url)
-        video.getVideoInformation ()
+        self._get_information(url)
 
     def test_padding (self):
         """Test that proper padding is done in the VideoItem.buildCommandList method"""
