@@ -1,5 +1,4 @@
 import os
-import sys
 import subprocess
 
 in_directory = os.path.abspath (os.path.dirname (__file__))

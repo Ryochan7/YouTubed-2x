@@ -7,8 +7,7 @@ if not sys.platform == "win32":
     pygtk.require ("2.0")
 import gtk
 import gtk.glade
-import gobject
-from youtubed2x_lib.other import VERSION, APP_NAME, WINDOWS
+from youtubed2x_lib.other import WINDOWS
 
 # Translation stuff
 import gettext
@@ -70,182 +69,11 @@ gtk.glade.textdomain ("youtubed-2x")
 #print _
 
 from youtubed2x_lib.videoitem import VideoItem
-import youtubed2x_lib.settings as settings
+from youtubed2x_lib import settings
 from youtubed2x_lib.parsermanager import ParserManager as parser_manager
-from youtubed2x_lib.ui.views.propertieswindow import PropertiesWindow
-from youtubed2x_lib.ui.controllers.uicontroller import UiController
-from youtubed2x_lib.ui.controllers.propertieswincontroller import PropertiesWinController
-from youtubed2x_lib.ui.models.queuemanager import QueueManager
-
-
-class YouTubeDownloader (object):
-    def update_statusbar (self, widget=None, message=None, interval=0):
-        if message == None:
-            self.statusbar.pop (self.statusbar_context_id)
-        else:
-            self.statusbar.pop (self.statusbar_context_id)
-            self.statusbar.push (self.statusbar_context_id, message)
-        if interval:
-            gobject.timeout_add (interval, self.update_statusbar)
-
-    def update_speed_statusbar (self, widget=None, message=None):
-        if message == None:
-            self.speed_statusbar.pop (self.statusbar_context_id)
-        else:
-            self.speed_statusbar.pop (self.statusbar_context_id)
-            self.speed_statusbar.push (self.statusbar_context_id, message)
-
-    def show_about_window (self):
-        """Display non-modal about window"""
-        self.about_window.show ()
-
-    def hide_about_window (self):
-        """Hide non-modal about window"""
-        self.about_window.hide ()
-
-    def show_caution_window (self):
-        temp_wtree = gtk.glade.XML (self.gladefile, 'dialog1')
-        caution_window = temp_wtree.get_widget ('dialog1')
-        caution_window.run ()
-        caution_window.destroy ()
-
-    def __init__ (self, gladefile, app_settings, video_queue):
-        self._video_bitrate_options = [384, 512, 768, 1024, 1536, 2000]
-
-        self.gladefile = gladefile
-        self.window = gtk.glade.XML (self.gladefile)
-        self.main_window = self.window.get_widget ('window1')
-        self.about_window = self.window.get_widget ('aboutdialog1')
-        self.about_window.set_comments ('Version %s' % VERSION)
-        self.about_window.set_name (APP_NAME)
-        self.mainbar1 = self.window.get_widget ('menubar1')
-        self.entry1 = self.window.get_widget ('entry1')
-        self.button1 = self.window.get_widget ('button1')
-        self.button2 = self.window.get_widget ('button2')
-        self.toolbutton1 = self.window.get_widget ('toolbutton1')
-        self.toolbutton2 = self.window.get_widget ('toolbutton2')
-        self.toolbutton3 = self.window.get_widget ('toolbutton3')
-        self.toolbutton4 = self.window.get_widget ('toolbutton4')
-        self.toolbutton5 = self.window.get_widget ('toolbutton5')
-        self.video_bitrate_combobox = self.window.get_widget ("video_bitrate_combobox")
-        self.audio_bitrate_combobox = self.window.get_widget ("audio_bitrate_combobox")
-
-        bitrate_list = gtk.ListStore (gobject.TYPE_INT)
-        self.video_bitrate_combobox.set_model (bitrate_list)
-        for bitrate in self._video_bitrate_options:
-            bitrate_list.append ([bitrate])
-        if app_settings.vbitrate in self._video_bitrate_options:
-            self.video_bitrate_combobox.set_active (self._video_bitrate_options.index (app_settings.vbitrate))
-        else:
-            self.video_bitrate_combobox.set_active (0)
-            app_settings.vbitrate = self._video_bitrate_options[0]
-
-        bitrate_list = gtk.ListStore (gobject.TYPE_INT)
-        self.audio_bitrate_combobox.set_model (bitrate_list)
-        for n in range (1,13):
-            bitrate_list.append ([n*32])
-        self.audio_bitrate_combobox.set_active ((app_settings.abitrate / 32)-1)
-
-        self.combobox = self.window.get_widget ('combobox1')
-        self.combobox.set_active (app_settings.format)
-        self.checkbutton1 = self.window.get_widget ('checkbutton1')
-        self.checkbutton2 = self.window.get_widget ('checkbutton2')
-        self.checkbutton3 = self.window.get_widget ('checkbutton3')
-        self.auto_download_check = self.window.get_widget ("auto_download_check")
-        self.resolution_combobox = self.window.get_widget ("resolution_combobox")
-        self.resolution_combobox.set_active (app_settings.output_res)
-
-        if app_settings.format in VideoItem.VIDEO_FORMATS:
-            self.resolution_combobox.set_sensitive (True)
-            self.video_bitrate_combobox.set_sensitive (True)
-            self.audio_bitrate_combobox.set_sensitive (True)
-        else:
-            self.resolution_combobox.set_sensitive (False)
-            self.video_bitrate_combobox.set_sensitive (False)
-            self.audio_bitrate_combobox.set_sensitive (True)
-
-        if not app_settings.transcode:
-            if not app_settings.keep_flv_files:
-                app_settings.keep_flv_files = True
-            self.checkbutton3.set_active (True)
-            self.checkbutton3.set_sensitive (False)
-            self.checkbutton1.set_active (False)
-        if app_settings.overwrite:
-            self.checkbutton2.set_active (True)
-        if not app_settings.keep_flv_files:
-            self.checkbutton3.set_active (False)
-
-        self.auto_download_check.set_active (app_settings.auto_download)
-
-        self.treeview1 = self.window.get_widget ("treeview1")
-        self.column1 = gtk.TreeViewColumn ("URL", gtk.CellRendererText(), text=0)
-        self.column1.set_sizing (gtk.TREE_VIEW_COLUMN_FIXED)
-#        self.column1.set_min_width (230)
-        self.column1.set_resizable (True)
-        self.column1.set_expand (True)
-        self.column2 = gtk.TreeViewColumn ("Name")
-        cell = gtk.CellRendererPixbuf ()
-        self.column2.pack_start (cell, False)
-        #self.column2.add_attribute (cell, "pixbuf", 6)
-        cell2 = gtk.CellRendererText ()
-        self.column2.pack_start (cell2, False)
-        self.column2.set_cell_data_func (cell, self._cell_render_service, video_queue)
-        self.column2.set_attributes (cell2, text=1)
-#        self.column2 = gtk.TreeViewColumn ("Name", gtk.CellRendererText(), text=1)
-        self.column2.set_sizing (gtk.TREE_VIEW_COLUMN_FIXED)
-        self.column2.set_min_width (175)
-        self.column2.set_resizable (True)
-        self.column2.set_expand (True)
-
-        self.column5 = gtk.TreeViewColumn ("Speed", gtk.CellRendererText(), text=4)
-        self.column5.set_sizing (gtk.TREE_VIEW_COLUMN_FIXED)
-        self.column5.set_min_width (100)
-
-        self.column6 = gtk.TreeViewColumn ("Size", gtk.CellRendererText (), text=5)
-        self.column6.set_sizing (gtk.TREE_VIEW_COLUMN_FIXED)
-        self.column6.set_min_width (100)
-
-        self.column3 = gtk.TreeViewColumn ("Progress", gtk.CellRendererProgress(), value=2)
-        self.column3.set_min_width (75)
-        self.column4 = gtk.TreeViewColumn ("Status", gtk.CellRendererText(), text=3)
-        self.column4.set_min_width (100)
-        self.column4.set_sizing (gtk.TREE_VIEW_COLUMN_FIXED)
-        self.column7 = gtk.TreeViewColumn ("Time Left", gtk.CellRendererText(), text=6)
-        self.column7.set_min_width (110)
-        self.column7.set_sizing (gtk.TREE_VIEW_COLUMN_FIXED)
-
-        #self.treeview1.connect ("button-press-event", self.treeview_right)
-        self.treeview1.append_column (self.column2)
-        self.treeview1.append_column (self.column6)
-        self.treeview1.append_column (self.column3)
-        self.treeview1.append_column (self.column5)
-        self.treeview1.append_column (self.column7)
-        self.treeview1.append_column (self.column4)
-        self.treeview1.set_model (video_queue.tree_model)
-
-        self.folder_chooser = self.window.get_widget ("filechooserbutton1")
-        self.folder_chooser.set_current_folder (app_settings.output_dir)
-        self.statusbar = self.window.get_widget ("statusbar1")
-        self.speed_statusbar = self.window.get_widget ("statusbar2")
-#        self.speed_label = self.window.get_widget ("speedlabel")
-        self.statusbar_context_id = self.statusbar.get_context_id ("Statusbar")
-        self.pause_toolbutton = self.window.get_widget ("pause_toolbutton")
-
-        self.sites_window = self.window.get_widget ("sites_dialog")
-        self.sites_textview = self.window.get_widget ("sites_textview")
-
-    def _cell_render_service (self, column, cell, model, iter, video_queue):
-        url = model.get_value (iter, 0)
-        thread_id = video_queue.getThreadId (url)
-        thread = video_queue.getVideoThread (thread_id)
-
-        if not hasattr (thread.video.parser.__class__, "getImageData") and not callable (thread.video.parser.__class__.getImageData):
-            return
-
-        image_data = thread.video.parser.__class__.getImageData ()
-        image = gtk.gdk.pixbuf_new_from_data (image_data, gtk.gdk.COLORSPACE_RGB, True, 8, 16, 16, 16*4)
-        cell.set_property ('pixbuf', image)
-        return
+from youtubed2x_lib.ui.propertieswindow import PropertiesWindow
+from youtubed2x_lib.ui.models.videothreadmanager import VideoThreadManager
+from youtubed2x_lib.ui.mainwindow import YouTubeDownloader
 
 if __name__ == '__main__':
     # If running on Windows, write output and error messages to text files.
@@ -255,8 +83,8 @@ if __name__ == '__main__':
         sys.stderr = open ("errors.log", "w")
 
     media_paths = [
-            # Can't use __file__ here. Py2exe does not like it
-            os.path.join (os.path.dirname (sys.argv[0]), "data"), # Running locally
+        # Can't use __file__ here. Py2exe does not like it
+        os.path.join (os.path.dirname (sys.argv[0]), "data"), # Running locally
     ]
     # Check for system data directories. Append any found
     # directories to media_paths
@@ -288,21 +116,16 @@ if __name__ == '__main__':
         sys.stderr.write ("Glade file \"%s\" could not be found. Exiting.\n" % filename)
         sys.exit (1)
 
-    video_queue = QueueManager (app_settings)
-    main_ui = YouTubeDownloader (gladefile, app_settings, video_queue)
-
-    prop_win = PropertiesWindow (gladefile, app_settings)
-    prop_win_controller = PropertiesWinController (prop_win, app_settings, video_queue)
-    ui_controller = UiController (main_ui, app_settings, video_queue, parser_manager, prop_win_controller)
-
+    thread_manager = VideoThreadManager (app_settings)
+    prop_win = PropertiesWindow (gladefile, app_settings, thread_manager)
+    main_ui = YouTubeDownloader (gladefile, app_settings, thread_manager,
+        parser_manager, prop_win)
     VideoItem.setFFmpegLocation (app_settings.ffmpeg_location)
 
-    video_queue.restore_session ()
+    thread_manager.restore_session ()
     gtk.gdk.threads_init ()
     gtk.gdk.threads_enter ()
     gtk.main ()
     gtk.gdk.threads_leave ()
     app_settings.writeConfigFile ()
-    video_queue.save_session ()
-
-
+    thread_manager.save_session ()

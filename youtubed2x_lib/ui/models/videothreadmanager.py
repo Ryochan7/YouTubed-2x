@@ -8,9 +8,7 @@ from youtubed2x_lib.sessioninfo import SessionInfo, SessionItem
 from youtubed2x_lib.ui.exceptions.inqueueexception import InQueueException
 from youtubed2x_lib.download import FileDownloader
 
-
-# TODO: NEED TO RENAME CLASS AND INSTANCE. NOT A QUEUE ANYMORE. W00T!
-class QueueManager (gobject.GObject):
+class VideoThreadManager (gobject.GObject):
     __gsignals__ = {
         "speed_progress_update": (gobject.SIGNAL_RUN_FIRST, None, (str,)),
         "progress_update": (gobject.SIGNAL_RUN_FIRST, None, (str,)),
@@ -24,7 +22,6 @@ class QueueManager (gobject.GObject):
     DOWNLOAD_UPDATE_INTERVAL = 1 # In seconds
     BYTES_PER_KB = FileDownloader.BYTES_PER_KB
     TRANSFER_PER_BLOCK = FileDownloader.TRANSFER_PER_BLOCK
-
 
     def __init__ (self, app_settings):
         super (self.__class__, self).__init__ ()
@@ -64,7 +61,6 @@ class QueueManager (gobject.GObject):
         # Limit the number of transcoding process
         self.transcode_semaphore = Semaphore (1)
 
-
     def add_try (self, thread):
         self.lock.acquire ()
         # Check if video has already been added
@@ -76,8 +72,17 @@ class QueueManager (gobject.GObject):
         id = self.next_status_id
         self.next_status_id += 1
         gtk.gdk.threads_enter ()
-        self.tree_items[id] = {"iter": self.tree_model.append ([thread.video.parser.page_url, thread.video.parser.page_url, 0, "Getting Info", "", "", ""]), "thread": thread, "last_update": time.time (), "speed_as_double": 0.0}
-#       self.tree_model.append (['http://www.youtube.com/watch?v=KZ1aZjTrh3I', 'http://www.youtube.com/watch?v=KZ1aZjTrh3I', 0, 'Waiting', "100 KB", "50 MB"]) # Replace 2nd URL with parsed title once page is parsed
+        self.tree_items[id] = {
+            "iter": self.tree_model.append ([thread.video.parser.page_url,
+                thread.video.parser.page_url, 0, "Getting Info", "", "", ""]),
+            "thread": thread,
+            "last_update": time.time (),
+            "speed_as_double": 0.0,
+        }
+        #self.tree_model.append (['http://www.youtube.com/watch?v=KZ1aZjTrh3I',
+        #   'http://www.youtube.com/watch?v=KZ1aZjTrh3I', 0, 'Waiting',
+        #   "100 KB", "50 MB"]) # Replace 2nd URL with parsed title once page
+        #    is parsed
         gtk.gdk.threads_leave ()
 
         self._num_objects += 1
@@ -383,5 +388,3 @@ class QueueManager (gobject.GObject):
             self.download_limit = self.__class__.BYTES_PER_KB * new_limit
         self.download_lock.release ()
         self.lock.release ()
-
-
