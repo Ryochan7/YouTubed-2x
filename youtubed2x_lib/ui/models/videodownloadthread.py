@@ -14,7 +14,7 @@ from youtubed2x_lib.ui.exceptions.inqueueexception import InQueueException
 
 if WINDOWS:
     import win32process
-
+    import win32api
 
 class VideoDownloadThread (Thread):
     _STATUS_ITEMS = (WAITING, PARSING, READY, CANCELLED, DONE, PAUSED, CANCELING) = range (0,7)
@@ -25,9 +25,8 @@ class VideoDownloadThread (Thread):
     SPEED_UPDATE_INTERVAL = .75 # In seconds
     WAIT_DOWNLOAD_INTERVAL = .25 # In seconds
 
-
     def __init__ (self, video_queue, app_settings, video, status=WAITING):
-        super (VideoDownloadThread, self).__init__ ()
+        super (self.__class__, self).__init__ ()
         self.setDaemon (True)
         self.video = video
         self.process_id = None
@@ -51,20 +50,20 @@ class VideoDownloadThread (Thread):
             gtk.gdk.threads_leave ()
             return
 
-        if self.status == self.__class__.DONE:
+        if self.status == self.DONE:
             self.video_queue.update_status (self.download_id, title=self.video.title, url=self.video.parser.page_url, force_update=True)
             self._finish_thread ()
             return
-        elif self.status == self.__class__.CANCELLED:
+        elif self.status == self.CANCELLED:
             self.video_queue.update_status (self.download_id, title=self.video.title, url=self.video.parser.page_url, force_update=True)
             self._finish_thread (_("Cancelling"), False)
             return
 
         if not self.video.title and not self.video.real_url:
-            self.status = self.__class__.PARSING
+            self.status = self.PARSING
             status, message = self._parsePage ()
             if not status:
-                self.status = self.__class__.CANCELLED
+                self.status = self.CANCELLED
                 self._finish_thread (_("Parse Failed"), False)
 
                 gtk.gdk.threads_enter ()
@@ -72,25 +71,25 @@ class VideoDownloadThread (Thread):
                 gtk.gdk.threads_leave ()
                 return
             else:
-                self.status = self.__class__.WAITING
+                self.status = self.WAITING
 
 
         if self.video.getFileSize () > 0 and os.path.exists (self.video.flv_file):
             current_file_size = os.path.getsize (self.video.flv_file)
             current_percentage = min (100, current_file_size / float (self.video.getFileSize ()) * 100)
-            self.status = self.__class__.PAUSED
-            self.video_queue.update_status (self.download_id, title=self.video.title, url=self.video.parser.page_url, progress=current_percentage, size=downloader.FileDownloader.humanizeSize (self.video.getFileSize ()), status=self.__class__._STATUS_MESSAGES[self.__class__.PAUSED], force_update=True)
+            self.status = self.PAUSED
+            self.video_queue.update_status (self.download_id, title=self.video.title, url=self.video.parser.page_url, progress=current_percentage, size=downloader.FileDownloader.humanizeSize (self.video.getFileSize ()), status=self._STATUS_MESSAGES[self.PAUSED], force_update=True)
         elif self.video.getFileSize () > 0:
-            self.video_queue.update_status (self.download_id, title=self.video.title, url=self.video.parser.page_url, progress=0, size=downloader.FileDownloader.humanizeSize (self.video.getFileSize ()), status=self.__class__._STATUS_MESSAGES[self.__class__.WAITING], force_update=True)
+            self.video_queue.update_status (self.download_id, title=self.video.title, url=self.video.parser.page_url, progress=0, size=downloader.FileDownloader.humanizeSize (self.video.getFileSize ()), status=self._STATUS_MESSAGES[self.WAITING], force_update=True)
         else:
-            self.video_queue.update_status (self.download_id, title=self.video.title, url=self.video.parser.page_url, progress=0, size=_("Unknown"), status=self.__class__._STATUS_MESSAGES[self.__class__.WAITING], force_update=True)
+            self.video_queue.update_status (self.download_id, title=self.video.title, url=self.video.parser.page_url, progress=0, size=_("Unknown"), status=self._STATUS_MESSAGES[self.WAITING], force_update=True)
 
         auto_download = self.app_settings.auto_download
         display_waiting = False
         if auto_download:
             self._has_sem = self.video_queue.acquire_sem (self.download_id)
             if self._has_sem:
-                self.status = self.__class__.READY
+                self.status = self.READY
             else:
                 self.video_queue.update_status (self.download_id, status=_("Waiting"), force_update=True)
                 display_waiting = True
@@ -99,27 +98,27 @@ class VideoDownloadThread (Thread):
         self.video_queue.emit ("unblock-ui")
         gtk.gdk.threads_leave ()
 
-        while self.status != self.__class__.READY and self.status != self.__class__.CANCELING and not self._has_sem:
-            time.sleep (self.__class__.SLEEP_HOLD)
+        while self.status != self.READY and self.status != self.CANCELING and not self._has_sem:
+            time.sleep (self.SLEEP_HOLD)
             if auto_download:
                 self._has_sem = self.video_queue.acquire_sem (self.download_id)
                 if self._has_sem:
-                    self.status = self.__class__.READY
+                    self.status = self.READY
 
         # This loop will likely be entered when a user starts
         # a download manually. Make sure to obey process limit
-        while not self._has_sem and self.status != self.__class__.CANCELING:
+        while not self._has_sem and self.status != self.CANCELING:
             if not display_waiting:
                 self.video_queue.update_status (self.download_id, status=_("Waiting"), force_update=True)
                 display_waiting = True
 
-            time.sleep (self.__class__.SLEEP_HOLD)
+            time.sleep (self.SLEEP_HOLD)
             self._has_sem = self.video_queue.acquire_sem (self.download_id)
 
 
-        if self.status == self.__class__.CANCELING:
-            self.status = self.__class__.CANCELLED
-            self._finish_thread (self.__class__._STATUS_MESSAGES[self.__class__.CANCELLED], False)
+        if self.status == self.CANCELING:
+            self.status = self.CANCELLED
+            self._finish_thread (self._STATUS_MESSAGES[self.CANCELLED], False)
             if self._has_sem:
                 self.video_queue.release_sem (self.download_id)
             return
@@ -156,20 +155,20 @@ class VideoDownloadThread (Thread):
         status = self._startWget ()
 
         # Did wget fail
-        if not status and self.status == self.__class__.CANCELING:
-            self.status = self.__class__.CANCELLED
-            self._finish_thread (self.__class__._STATUS_MESSAGES[self.__class__.CANCELLED], False)
+        if not status and self.status == self.CANCELING:
+            self.status = self.CANCELLED
+            self._finish_thread (self._STATUS_MESSAGES[self.CANCELLED], False)
             self.video_queue.release_sem (self.download_id)
             return
         elif not status:
-            self.status = self.__class__.CANCELLED
+            self.status = self.CANCELLED
             self._finish_thread (_("Wget Failed"), False)
             self.video_queue.release_sem (self.download_id)
             return
 
-        if self.status == self.__class__.CANCELING:
-            self.status = self.__class__.CANCELLED
-            self._finish_thread (self.__class__._STATUS_MESSAGES[self.__class__.CANCELLED], False)
+        if self.status == self.CANCELING:
+            self.status = self.CANCELLED
+            self._finish_thread (self._STATUS_MESSAGES[self.CANCELLED], False)
             self.video_queue.release_sem (self.download_id)
             return
 
@@ -198,14 +197,14 @@ class VideoDownloadThread (Thread):
         status = self._startFFmpeg (abitrate, vbitrate)
 
         # Did ffmpeg fail
-        if not status and self.status == self.__class__.CANCELING:
-            self.status = self.__class__.CANCELLED
-            self._finish_thread (self.__class__._STATUS_MESSAGES[self.__class__.CANCELLED], False)
+        if not status and self.status == self.CANCELING:
+            self.status = self.CANCELLED
+            self._finish_thread (self._STATUS_MESSAGES[self.CANCELLED], False)
             #self.video_queue.transcode_semaphore.release ()
             self.video_queue.release_sem (self.download_id)
             return
         elif not status:
-            self.status = self.__class__.CANCELLED
+            self.status = self.CANCELLED
             self._finish_thread (_("FFmpeg Failed"), False)
             #self.video_queue.transcode_semaphore.release ()
             self.video_queue.release_sem (self.download_id)
@@ -215,8 +214,8 @@ class VideoDownloadThread (Thread):
             print "Flv video deleted."
             os.remove (self.video.flv_file)
 
-        if self.status == self.__class__.CANCELING:
-            self.status = self.__class__.CANCELLED
+        if self.status == self.CANCELING:
+            self.status = self.CANCELLED
             #self.video_queue.transcode_semaphore.release ()
             self.video_queue.release_sem (self.download_id)
             return
@@ -225,10 +224,9 @@ class VideoDownloadThread (Thread):
 #        self.video_queue.transcode_semaphore.release ()
         self.video_queue.release_sem (self.download_id)
 
-
     def _finish_thread (self, print_status="Complete", done=True):
         if done:
-            self.status = self.__class__.DONE
+            self.status = self.DONE
 
         self.video_queue.update_status (self.download_id, progress=100, status=print_status, speed="", size="", eta="", force_update=True)
 
@@ -236,38 +234,35 @@ class VideoDownloadThread (Thread):
         self.video_queue.emit ("block-ui")
         gtk.gdk.threads_leave ()
 
-
     def setReady (self, ready=True):
         if isinstance (ready, bool) and ready:
-            self.status = self.__class__.READY
+            self.status = self.READY
 
     def pause (self):
         if self._downloader:
-            self.status = self.__class__.PAUSED
-
+            self.status = self.PAUSED
 
     def cancel (self):
         if self._downloader or not self._has_sem:
-            self.status = self.__class__.CANCELING
+            self.status = self.CANCELING
 
         # Process is currently running. Kill process and cancel thread
-        elif self.process_id and self.status == self.__class__.READY:
+        elif self.process_id and self.status == self.READY:
             if not WINDOWS:
                 os.kill (self.process_id, signal.SIGKILL)
             else:
-                import win32api
                 handle = win32api.OpenProcess (1, 0, self.process_id)
                 win32api.TerminateProcess (handle, 0)
 
-            self.status = self.__class__.CANCELING
+            self.status = self.CANCELING
             self.process_id = None
         # Thread is active but likely transitioning to ffmpeg.
         # Wait and try to cancel
-        elif self.status == self.__class__.READY:
+        elif self.status == self.READY:
             gobject.timeout_add (500, self.cancel)
         # Thread should be in a save spot to just set the flag
         else:
-            self.status = self.__class__.CANCELING
+            self.status = self.CANCELING
 
 
     def _startFFmpeg (self, abitrate, vbitrate):
@@ -362,15 +357,14 @@ class VideoDownloadThread (Thread):
         self.process_id = None
 
         if process.poll () == 0 and not WINDOWS:
-            self.video_queue.update_status (self.download_id, progress=100, status=self.__class__._STATUS_MESSAGES[self.__class__.DONE], eta="", force_update=True)
+            self.video_queue.update_status (self.download_id, progress=100, status=self._STATUS_MESSAGES[self.DONE], eta="", force_update=True)
         elif process.poll () == 0 and self.status != self.CANCELLED:
-            self.video_queue.update_status (self.download_id, progress=100, status=self.__class__._STATUS_MESSAGES[self.__class__.DONE], eta="", force_update=True)
+            self.video_queue.update_status (self.download_id, progress=100, status=self._STATUS_MESSAGES[self.DONE], eta="", force_update=True)
         else:
             if os.path.exists (self.video.avi_file):
                 os.remove (self.video.avi_file)
             return False
         return True
-
 
     def _startWget (self):
         n00b = downloader.FileDownloader (self.video.real_url, self.video.flv_file)
@@ -418,15 +412,15 @@ class VideoDownloadThread (Thread):
         gtk.gdk.threads_leave ()
 
         total_time = 0
-        while self.status == self.__class__.PAUSED or (data != "" and self.status == self.__class__.READY):
-            if self.status == self.__class__.PAUSED:
+        while self.status == self.PAUSED or (data != "" and self.status == self.READY):
+            if self.status == self.PAUSED:
                 if n00b:
                     # Pausing download. Have to close current session
                     total_time += (time.time () - last_update)
                     n00b.close ()
                     n00b = None
                     self.video_queue.update_status (self.download_id, speed="", eta="", status=_("Paused"), force_update=True)
-                time.sleep (self.__class__.SLEEP_HOLD)
+                time.sleep (self.SLEEP_HOLD)
                 continue
             # Have to re-open file downloader. Downloader will timeout
             # when resumed after a few seconds,
@@ -499,22 +493,22 @@ class VideoDownloadThread (Thread):
 
         self._downloader = None
 
-        if self.status == self.__class__.READY and n00b.getBytesDownloaded () == file_size:
+        if self.status == self.READY and n00b.getBytesDownloaded () == file_size:
             n00b.close ()
-        elif self.status == self.__class__.READY and file_size == -1:
+        elif self.status == self.READY and file_size == -1:
             n00b.close () # Can only assume file completely downloaded
-        elif self.status == self.__class__.CANCELING and n00b:
+        elif self.status == self.CANCELING and n00b:
             n00b.cancel () # Download was cancelled while downloading
             self.video_queue.update_status (self.download_id, speed="", size="", eta="", force_update=True)
             return False
-        elif self.status == self.__class__.PAUSED and n00b and n00b.getBytesDownloaded () == file_size:
+        elif self.status == self.PAUSED and n00b and n00b.getBytesDownloaded () == file_size:
             n00b.close () # Download was paused after file finished downloading
-            self.status = self.__class__.READY
-        elif self.status == self.__class__.PAUSED and file_size == -1:
+            self.status = self.READY
+        elif self.status == self.PAUSED and file_size == -1:
             n00b.close () # Download was paused after file finished
                           # downloading. Can only assume file
                           # completely downloaded
-            self.status = self.__class__.READY
+            self.status = self.READY
         else:
             print "WHY ME"
             # Download was cancelled after being paused

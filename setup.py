@@ -12,7 +12,7 @@ stuff = {
     "description": "Download and transcode flash video to GP2X video files",
     "author": "Travis Nickles",
     "url": "http://www.ryochan7.com/",
-    "scripts": ["youtubed-2x", "youtubed-2x_gui"],
+    "scripts": ["youtubed-2x.py", "youtubed-2x_gui.py"],
     "packages": ["youtubed2x_lib", "youtubed2x_lib.parsers", "youtubed2x_lib.ui", "youtubed2x_lib.ui.controllers", "youtubed2x_lib.ui.exceptions", "youtubed2x_lib.ui.models", "youtubed2x_lib.ui.views"],
 
     "data_files": [(os.path.join ("share", "youtubed-2x"), [os.path.join ("data", "youtubed-2x.glade")]),
@@ -21,8 +21,8 @@ stuff = {
     "license": "GPL3",
 }
 
-#if not WINDOWS:
-#    compile_po_messages.make ()
+if not WINDOWS:
+    compile_po_messages.make ()
 
 trans_files = []
 for mofile in glob.glob (os.path.join ("i18n", "*", "LC_MESSAGES", "youtubed-2x.mo")):
@@ -34,7 +34,6 @@ if len (trans_files) > 0:
 
 
 if WINDOWS:
-    import py2exe
     import youtubed2x_lib.parsers
 
     includes_list = ["atk", "cairo", "pango", "pangocairo"]
@@ -87,7 +86,7 @@ if WINDOWS:
     stuff["data_files"].append ((os.path.join ("share", "themes", "Default", "gtk-2.0-key"), [os.path.join ("gtk-win", "share", "themes", "Default", "gtk-2.0-key", file) for file in os.listdir (os.path.join ("gtk-win", "share", "themes", "Default", "gtk-2.0-key")) if not file.startswith ('.')]))
     stuff["data_files"].append ((os.path.join ("share", "themes", "MS-Windows", "gtk-2.0"), [os.path.join ("gtk-win", "share", "themes", "MS-Windows", "gtk-2.0", file) for file in os.listdir (os.path.join ("gtk-win", "share", "themes", "MS-Windows", "gtk-2.0")) if not file.startswith ('.')]))
     #print stuff["data_files"]
-    setup (options=opts, console=["youtubed-2x"], windows=["youtubed-2x_gui"], **stuff)
+    setup (options=opts, console=["youtubed-2x.py"], windows=["youtubed-2x_gui.py"], **stuff)
 else:
     setup (**stuff)
 
