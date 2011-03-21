@@ -1,5 +1,5 @@
-import os
 import gtk
+import logging
 import gobject
 import time
 from threading import Lock, Semaphore
@@ -10,9 +10,16 @@ from youtubed2x_lib.download import FileDownloader
 
 
 # TODO: NEED TO RENAME CLASS AND INSTANCE. NOT A QUEUE ANYMORE. W00T!
-class QueueManager (object):
+class QueueManager (gobject.GObject):
+    __gsignals__ = {
+        "speed_progress_update": (gobject.SIGNAL_RUN_FIRST, None, (str,)),
+        "progress_update": (gobject.SIGNAL_RUN_FIRST, None, (str,)),
+        "info-changed": (gobject.SIGNAL_RUN_FIRST, None, ()),
+        "block-ui": (gobject.SIGNAL_RUN_FIRST, None, ()),
+        "unblock-ui": (gobject.SIGNAL_RUN_FIRST, None, ()),
+    }
+
     COLUMN_NAMES = {0: "url", 1: "title", 2: "progress", 3: "status", 4: "speed", 5: "size", 6: "eta"}
-    signals = ["speed_progress_update", "progress_update", "info-changed", "block-ui", "unblock-ui"]
     UPDATE_INTERVAL = 1 # In seconds
     DOWNLOAD_UPDATE_INTERVAL = 1 # In seconds
     BYTES_PER_KB = FileDownloader.BYTES_PER_KB
@@ -20,9 +27,8 @@ class QueueManager (object):
 
 
     def __init__ (self, app_settings):
-        self.observers = {}
-        for signal in self.__class__.signals:
-            self.observers[signal] = []
+        super (self.__class__, self).__init__ ()
+        logging.info ("GAMMA")
 
         self.tree_items = {}
         self._worker_threads_ids = []
@@ -59,30 +65,6 @@ class QueueManager (object):
         self.transcode_semaphore = Semaphore (1)
 
 
-    def register (self, signal, observer):
-        if signal in self.observers:
-            if observer not in self.observers[signal]:
-                self.observers[signal].append (observer)
-        else:
-            raise Exception ("WTF")
-
-
-    def unregister (self, signal, observer):
-        if signal in self.observers:
-            if observer in self.observers[signal]:
-                self.observers[signal].remove (observer)
-        else:
-            raise Exception ("WTFA")
-
-
-    def send (self, signal, *args):
-        if signal in self.observers:
-            for observer in self.observers[signal]:
-                observer (*args)
-        else:
-            raise Exception ("WHO IS YOUR DADDY AND WHAT DOES HE DO?")
-
-
     def add_try (self, thread):
         self.lock.acquire ()
         # Check if video has already been added
@@ -97,10 +79,10 @@ class QueueManager (object):
         self.tree_items[id] = {"iter": self.tree_model.append ([thread.video.parser.page_url, thread.video.parser.page_url, 0, "Getting Info", "", "", ""]), "thread": thread, "last_update": time.time (), "speed_as_double": 0.0}
 #       self.tree_model.append (['http://www.youtube.com/watch?v=KZ1aZjTrh3I', 'http://www.youtube.com/watch?v=KZ1aZjTrh3I', 0, 'Waiting', "100 KB", "50 MB"]) # Replace 2nd URL with parsed title once page is parsed
         gtk.gdk.threads_leave ()
+
         self._num_objects += 1
         self.lock.release ()
         return id
-
 
     def acquire_sem (self, thread_id):
         self.sem_lock.acquire ()
@@ -120,7 +102,6 @@ class QueueManager (object):
             self.lock.release ()
         self.sem_lock.release ()
         return status
-
 
     def release_sem (self, thread_id):
         self.sem_lock.acquire ()
@@ -144,11 +125,10 @@ class QueueManager (object):
         # items exist
         if self._running_items == 0:
             gtk.gdk.threads_enter ()
-            self.send ("speed_progress_update", "")
-            self.send ("progress_update", "")
+            self.emit ("speed_progress_update", "")
+            self.emit ("progress_update", "")
             gtk.gdk.threads_leave ()
         self.sem_lock.release ()
-
 
     def alter_sem (self, value):
         self.sem_lock.acquire ()
@@ -160,7 +140,6 @@ class QueueManager (object):
 
             self._sem_limit = value
         self.sem_lock.release ()
-
 
     def update_status (self, id, **kwargs):
         self.lock.acquire ()
@@ -189,11 +168,10 @@ class QueueManager (object):
             if key in kwargs:
                 self.tree_model.set (iter, column, kwargs[key])
 
-        
         # Update download speed total message in statusbar
         #time_since_speed_update = time.time () - self.speed_status_update
         if self.tree_items[id]["thread"].status == VideoDownloadThread.READY:# and time_since_speed_update > self.__class__.UPDATE_INTERVAL:
-            self.send ("progress_update", "Active: %i of %i" % (self._running_items,self._num_objects))
+            self.emit ("progress_update", "Active: %i of %i" % (self._running_items, self._num_objects))
             #self.download_lock.acquire ()
 #            print "Try out"
             # Recalculate time_since_speed_update in case acquiring the download_lock
@@ -218,14 +196,12 @@ class QueueManager (object):
         gtk.gdk.threads_leave ()
         self.lock.release ()
 
-
     def startDownload (self, id):
         if not id in self.tree_items:
             return False
 
         thread = self.tree_items[id]["thread"]
         thread.setReady (True)
-
 
     def getVideoThread (self, id):
         if not id in self.tree_items:
@@ -234,14 +210,12 @@ class QueueManager (object):
         thread = self.tree_items[id]["thread"]
         return thread
 
-
     def getThreadId (self, url):
         for element in self.tree_items:
             thread = self.tree_items[element]["thread"]
             if thread and thread.video.parser.page_url == url:
                 return element
         return None
-
 
     def removeDownload (self, id):
         if not id in self.tree_items:
@@ -265,7 +239,6 @@ class QueueManager (object):
                 self.next_status_id = key_list[-2]+1
         del self.tree_items[id]
 
-
     def finishDownload (self, id):
         if not id in self.tree_items:
             return
@@ -274,23 +247,18 @@ class QueueManager (object):
         if self.tree_items[id]["thread"].status != VideoDownloadThread.DONE:
             self.tree_items[id]["thread"].cancel ()
 
-
     def _removeIter (self, iter):
         self.tree_model.remove (iter)
-
 
     def is_empty (self):
         return self._num_objects == 0
 
-
     def queue_length (self):
         return self._num_objects
-
 
     def swap_items (self, id_item1, id_item2):
         if id_item1 in self.tree_items and id_item2 in self.tree_items:
             self.tree_model.swap (self.tree_items[id_item1]["iter"], self.tree_items[id_item2]["iter"])
-
 
     def is_queue_active (self):
         for element in self.tree_items.keys ():
@@ -301,13 +269,11 @@ class QueueManager (object):
 
         return False
 
-
     def clear_complete (self):
         for element in self.tree_items.keys ():
             thread = self.tree_items[element]["thread"]
             if thread and not thread.isAlive ():
                 self.removeDownload (element)
-
 
     def restore_session (self):
         restore_session = SessionInfo ()
@@ -315,9 +281,8 @@ class QueueManager (object):
 #        print items
         for item in items:
             youtube_video = item.video
-            self.send ("block-ui")
+            self.emit ("block-ui")
             VideoDownloadThread (self, self.app_settings, youtube_video, item.status).start ()
-
 
     def save_session (self):
         items = []
@@ -339,7 +304,6 @@ class QueueManager (object):
             new_session.save ()
         else:
             new_session.delete ()
-
 
     def is_download_ready (self):
 #        self.lock.acquire ()
@@ -399,7 +363,6 @@ class QueueManager (object):
         self.download_lock.release ()
         return ready
 
-
     def update_download_speed (self, block_in_bytes):
 #        self.lock.acquire ()
         self.download_lock.acquire ()
@@ -410,7 +373,6 @@ class QueueManager (object):
         self.download_speed_total += block_in_bytes
         self.download_lock.release ()
 #        self.lock.release ()
-
 
     def setDownloadLimit (self, new_limit=-1):
         self.lock.acquire ()

@@ -76,7 +76,7 @@ class FileDownloader (object):
                 self._handler.close ()
                 self._handler = None
                 raise ResumeFail ("Could not resume file download")
-                
+
         else:
             self._handler = urllib2.urlopen (self._request)
             self._output_file = open (self.output_file_path, 'wb')

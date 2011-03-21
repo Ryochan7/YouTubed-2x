@@ -1,4 +1,5 @@
-import os, sys
+import os
+import sys
 import subprocess
 import signal
 import re
@@ -36,18 +37,17 @@ class VideoDownloadThread (Thread):
         self.video_queue = video_queue
         self.app_settings = app_settings
 
-        if status in self.__class__._STATUS_ITEMS:
+        if status in self._STATUS_ITEMS:
             self.status = status
         else:
             raise Exception ("'%s' is not a valid status" % status)
-
 
     def run (self):
         try:
             self.download_id = self.video_queue.add_try (self)
         except InQueueException as exception:
             gtk.gdk.threads_enter ()
-            self.video_queue.send ("unblock-ui")
+            self.video_queue.emit ("unblock-ui")
             gtk.gdk.threads_leave ()
             return
 
@@ -59,7 +59,7 @@ class VideoDownloadThread (Thread):
             self.video_queue.update_status (self.download_id, title=self.video.title, url=self.video.parser.page_url, force_update=True)
             self._finish_thread (_("Cancelling"), False)
             return
-            
+
         if not self.video.title and not self.video.real_url:
             self.status = self.__class__.PARSING
             status, message = self._parsePage ()
@@ -68,7 +68,7 @@ class VideoDownloadThread (Thread):
                 self._finish_thread (_("Parse Failed"), False)
 
                 gtk.gdk.threads_enter ()
-                self.video_queue.send ("unblock-ui")
+                self.video_queue.emit ("unblock-ui")
                 gtk.gdk.threads_leave ()
                 return
             else:
@@ -96,7 +96,7 @@ class VideoDownloadThread (Thread):
                 display_waiting = True
 
         gtk.gdk.threads_enter ()
-        self.video_queue.send ("unblock-ui")
+        self.video_queue.emit ("unblock-ui")
         gtk.gdk.threads_leave ()
 
         while self.status != self.__class__.READY and self.status != self.__class__.CANCELING and not self._has_sem:
@@ -126,7 +126,7 @@ class VideoDownloadThread (Thread):
 
         # Refresh GUI for autodownloaded items
         gtk.gdk.threads_enter ()
-        self.video_queue.send ("unblock-ui")
+        self.video_queue.emit ("unblock-ui")
         gtk.gdk.threads_leave ()
 
         abitrate = self.app_settings.abitrate
@@ -175,7 +175,7 @@ class VideoDownloadThread (Thread):
 
         # Refresh GUI (particularly for the pause button)
         gtk.gdk.threads_enter ()
-        self.video_queue.send ("unblock-ui")
+        self.video_queue.emit ("unblock-ui")
         gtk.gdk.threads_leave ()
 
         #self.video_queue.release_sem (self.download_id)
@@ -233,7 +233,7 @@ class VideoDownloadThread (Thread):
         self.video_queue.update_status (self.download_id, progress=100, status=print_status, speed="", size="", eta="", force_update=True)
 
         gtk.gdk.threads_enter ()
-        self.video_queue.send ("block-ui")
+        self.video_queue.emit ("block-ui")
         gtk.gdk.threads_leave ()
 
 
@@ -413,7 +413,8 @@ class VideoDownloadThread (Thread):
 
         # Refresh GUI (particularly for the pause button)
         gtk.gdk.threads_enter ()
-        self.video_queue.send ("unblock-ui")
+        self.video_queue.emit ("unblock-ui")
+        #self.video_queue.send ("unblock-ui")
         gtk.gdk.threads_leave ()
 
         total_time = 0
@@ -497,7 +498,7 @@ class VideoDownloadThread (Thread):
             #print "SPEED 2: %s" % speeda2
 
         self._downloader = None
-        
+
         if self.status == self.__class__.READY and n00b.getBytesDownloaded () == file_size:
             n00b.close ()
         elif self.status == self.__class__.READY and file_size == -1:
@@ -527,7 +528,6 @@ class VideoDownloadThread (Thread):
 
         self.video_queue.update_status (self.download_id, progress=100, speed="", size="", eta="", force_update=True)
         return True
-
 
     def _parsePage (self):
         parser_class = self.video.parser.__class__

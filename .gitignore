@@ -1,0 +1,7 @@
+*.pyc
+MANIFEST
+.ropeproject/
+build/
+dist/
+nbproject/
+

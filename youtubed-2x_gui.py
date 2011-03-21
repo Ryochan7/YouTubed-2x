@@ -8,9 +8,6 @@ if not sys.platform == "win32":
 import gtk
 import gtk.glade
 import gobject
-import pango
-import webbrowser
-
 from youtubed2x_lib.other import VERSION, APP_NAME, WINDOWS
 
 # Translation stuff
@@ -82,7 +79,7 @@ from youtubed2x_lib.ui.models.queuemanager import QueueManager
 
 
 class YouTubeDownloader (object):
-    def update_statusbar (self, message=None, interval=0):
+    def update_statusbar (self, widget=None, message=None, interval=0):
         if message == None:
             self.statusbar.pop (self.statusbar_context_id)
         else:
@@ -91,31 +88,26 @@ class YouTubeDownloader (object):
         if interval:
             gobject.timeout_add (interval, self.update_statusbar)
 
-
-    def update_speed_statusbar (self, message=None):
+    def update_speed_statusbar (self, widget=None, message=None):
         if message == None:
             self.speed_statusbar.pop (self.statusbar_context_id)
         else:
             self.speed_statusbar.pop (self.statusbar_context_id)
             self.speed_statusbar.push (self.statusbar_context_id, message)
 
-
     def show_about_window (self):
         """Display non-modal about window"""
         self.about_window.show ()
 
-
     def hide_about_window (self):
         """Hide non-modal about window"""
         self.about_window.hide ()
-
 
     def show_caution_window (self):
         temp_wtree = gtk.glade.XML (self.gladefile, 'dialog1')
         caution_window = temp_wtree.get_widget ('dialog1')
         caution_window.run ()
         caution_window.destroy ()
-
 
     def __init__ (self, gladefile, app_settings, video_queue):
         self._video_bitrate_options = [384, 512, 768, 1024, 1536, 2000]
@@ -238,17 +230,15 @@ class YouTubeDownloader (object):
 #        self.speed_label = self.window.get_widget ("speedlabel")
         self.statusbar_context_id = self.statusbar.get_context_id ("Statusbar")
         self.pause_toolbutton = self.window.get_widget ("pause_toolbutton")
-#       self.update_statusbar ("HAMTARO")
 
         self.sites_window = self.window.get_widget ("sites_dialog")
         self.sites_textview = self.window.get_widget ("sites_textview")
-
 
     def _cell_render_service (self, column, cell, model, iter, video_queue):
         url = model.get_value (iter, 0)
         thread_id = video_queue.getThreadId (url)
         thread = video_queue.getVideoThread (thread_id)
-        
+
         if not hasattr (thread.video.parser.__class__, "getImageData") and not callable (thread.video.parser.__class__.getImageData):
             return
 
@@ -256,8 +246,6 @@ class YouTubeDownloader (object):
         image = gtk.gdk.pixbuf_new_from_data (image_data, gtk.gdk.COLORSPACE_RGB, True, 8, 16, 16, 16*4)
         cell.set_property ('pixbuf', image)
         return
-
-
 
 if __name__ == '__main__':
     # If running on Windows, write output and error messages to text files.
@@ -278,7 +266,6 @@ if __name__ == '__main__':
             media_paths.append (os.path.join (data_dir, "youtubed-2x"))
     elif WINDOWS:
         media_paths.append (os.path.join (sys.prefix, "share", "youtubed-2x"))
-
 
     app_settings = settings.Settings ()
     try:
@@ -303,13 +290,12 @@ if __name__ == '__main__':
 
     video_queue = QueueManager (app_settings)
     main_ui = YouTubeDownloader (gladefile, app_settings, video_queue)
+
     prop_win = PropertiesWindow (gladefile, app_settings)
     prop_win_controller = PropertiesWinController (prop_win, app_settings, video_queue)
     ui_controller = UiController (main_ui, app_settings, video_queue, parser_manager, prop_win_controller)
 
     VideoItem.setFFmpegLocation (app_settings.ffmpeg_location)
-    if app_settings.use_proxy and app_settings.proxy_server and app_settings.proxy_port:
-        set_proxy (app_settings.proxy_server, app_settings.proxy_port)
 
     video_queue.restore_session ()
     gtk.gdk.threads_init ()

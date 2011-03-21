@@ -1,7 +1,6 @@
 import os
 import gtk
 import webbrowser
-import gobject
 import pango
 import subprocess
 from youtubed2x_lib.videoitem import VideoItem
@@ -40,10 +39,10 @@ class UiController (object):
               }
         self.ui.window.signal_autoconnect (dic)
 
-        self.video_queue.register ("unblock-ui", self.unlock_partial_ui)
-        self.video_queue.register ("block-ui", self.block_partial_ui)
-        self.video_queue.register ("speed_progress_update", self.ui.update_speed_statusbar)
-        self.video_queue.register ("progress_update", self.ui.update_statusbar)
+        self.video_queue.connect ("unblock-ui", self.unlock_partial_ui)
+        self.video_queue.connect ("block-ui", self.block_partial_ui)
+        self.video_queue.connect ("speed_progress_update", self.ui.update_speed_statusbar)
+        self.video_queue.connect ("progress_update", self.ui.update_statusbar)
 
         # Populate sites_textview with hooks to controller methods when moving over text
         # and clicking on links
@@ -77,7 +76,6 @@ class UiController (object):
     def change_video_folder (self, widget):
         self.app_settings.output_dir = widget.get_filename ()
 
-
     def quit_app (self, widget, data=None):
         if self.video_queue.is_queue_active ():
             self.ui.show_caution_window ()
@@ -85,35 +83,28 @@ class UiController (object):
 
         gtk.main_quit ()
 
-
     def show_preferences (self, widget):
         self.prop_cont.show ()
-
 
     def show_about_window (self, widget):
         """Display non-modal about window"""
         self.ui.show_about_window ()
 
-
     def hide_about_window (self, widget, data):
         """Hide non-modal about window"""
         self.ui.hide_about_window ()
-
 
     def keep_about_window (self, widget, data):
         """Keep about window from being destroyed when close button
         is clicked. Window will be hidden later from the response handler"""
         return True
 
-
     def show_sites_window (self, widget):
         self.ui.sites_window.show ()
-
 
     def hide_sites_window (self, widget, data=None):
         """Hide non-modal sites dialog window"""
         self.ui.sites_window.hide ()
-
 
     def keep_sites_window (self, widget, data):
         """
@@ -123,10 +114,8 @@ class UiController (object):
         """
         return True
 
-
     def open_site (self, widget, url):
         webbrowser.open (url)
-
 
     def transcode_check (self, widget):
         self.app_settings.transcode = not self.app_settings.transcode
@@ -136,22 +125,14 @@ class UiController (object):
         else:
             self.ui.checkbutton3.set_sensitive (True)
 
-
     def overwrite_check (self, widget):
         self.app_settings.overwrite = not self.app_settings.overwrite
-
 
     def keep_flvs_check (self, widget):
         self.app_settings.keep_flv_files = not self.app_settings.keep_flv_files
 
-
     def change_auto_download (self, widget):
         self.app_settings.auto_download = not self.app_settings.auto_download
-
-
-    def change_auto_download (self, widget):
-        self.app_settings.auto_download = not self.app_settings.auto_download
-
 
     def change_video_bitrate (self, widget):
         index = widget.get_active ()
@@ -159,7 +140,6 @@ class UiController (object):
 
     def change_audio_bitrate (self, widget):
         self.app_settings.abitrate = (widget.get_active ()*32)+32
-
 
     def resolution_change (self, widget):
         self.app_settings.output_res = widget.get_active ()
@@ -178,7 +158,6 @@ class UiController (object):
             self.ui.video_bitrate_combobox.set_sensitive (False)
             self.ui.audio_bitrate_combobox.set_sensitive (True)
 
-
     def move_up (self, widget):
         """Move Up"""
         tree = self.ui.treeview1.get_selection ()
@@ -196,7 +175,6 @@ class UiController (object):
         tree.select_path (index-1)
         self.select_item ()
 
-
     def move_down (self, widget):
         """Move Down"""
         tree = self.ui.treeview1.get_selection ()
@@ -213,7 +191,6 @@ class UiController (object):
         self.video_queue.swap_items (thread_id, prev_thread_id)
         tree.select_path (index+1)
         self.select_item ()
-
 
     def select_item (self, widget=None):
         tree = self.ui.treeview1.get_selection ()
@@ -287,14 +264,12 @@ class UiController (object):
 
         return True
 
-
-    def block_ui (self):
+    def block_ui (self, widget=None):
         self.block_partial_ui ()
         self.ui.entry1.set_sensitive (False)
         self.ui.button1.set_sensitive (False)
 
-
-    def block_partial_ui (self):
+    def block_partial_ui (self, widget=None):
         self.ui.toolbutton2.set_label ("Remove")
         self.ui.toolbutton1.set_sensitive (False)
         self.ui.toolbutton2.set_sensitive (False)
@@ -308,8 +283,7 @@ class UiController (object):
             tree.select_path (index)
             self.select_item ()
 
-
-    def unlock_partial_ui (self):
+    def unlock_partial_ui (self, widget=None):
         self.ui.entry1.set_sensitive (True)
         self.ui.button1.set_sensitive (True)
         self.ui.entry1.set_text ("")
@@ -323,11 +297,9 @@ class UiController (object):
 
         self.select_item ()
 
-
     def clear_complete (self, widget):
         self.video_queue.clear_complete ()
         self.block_partial_ui ()
-
 
     def open_video_folder (self, widget):
         folder = self.ui.folder_chooser.get_filename ()
@@ -335,11 +307,6 @@ class UiController (object):
             subprocess.Popen (["start", "", folder], shell=True)
         else:
             subprocess.Popen (["xdg-open", folder])
-
-
-    def change_video_folder (self, widget):
-        self.app_settings.output_dir = self.ui.folder_chooser.get_filename ()
-
 
     def pause_download (self, widget):
         tree = self.ui.treeview1.get_selection ()
@@ -356,7 +323,6 @@ class UiController (object):
             thread.setReady ()
 
         self.select_item ()
-
 
     def remove (self, widget):
         tree = self.ui.treeview1.get_selection ()
@@ -383,7 +349,6 @@ class UiController (object):
 
         self.block_partial_ui ()
         return True
-
 
     def treeview_right2 (self, widget):
         tree = widget.get_selection ()
@@ -429,14 +394,12 @@ class UiController (object):
 
         self._treeview_rightclick_event = None
 
-
     def treeview_right (self, widget, event):
         # Check if a right click was performed on a video item.
         # The treeview_right2 will be called shortly after this
         # due to cursor-changed signal
         if event.button == self.__class__.GTK_RIGHT_CLICK_BUTTON:
             self._treeview_rightclick_event = event
-
 
     def add_queue (self, widget):
         newtext = self.ui.entry1.get_text ()
@@ -451,7 +414,6 @@ class UiController (object):
         self.block_ui ()
         VideoDownloadThread (self.video_queue, self.app_settings, youtube_video).start ()
 
-
     def startProcess (self, widget):
         tree = self.ui.treeview1.get_selection ()
         model, selection = tree.get_selected ()
@@ -465,14 +427,12 @@ class UiController (object):
         self.select_item ()
         return True
 
-
     def sites_textview_link_button_press_event (self, tag, widget, event, gtkiter):
         if event.type == gtk.gdk.BUTTON_PRESS:
             link = tag.get_data ("link")
             webbrowser.open (link)
 
         return
-
 
     def sites_textview_motion_notify_event (self, widget, event):
         (x, y, state) = event.window.get_pointer ()
