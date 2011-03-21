@@ -8,85 +8,88 @@ if not sys.platform == "win32":
 import gtk
 import gtk.glade
 import logging
-from youtubed2x_lib.other import WINDOWS
-
-# Translation stuff
 import gettext
 import locale
 
-lc, enc = locale.getdefaultlocale ()
-
-if os.path.exists (os.path.join (os.path.dirname (sys.argv[0]), "i18n")):
-    # Running locally
-    #print "Running local"
-    gettext.bindtextdomain ("youtubed-2x", "i18n")
+def add_translation ():
     lc, enc = locale.getdefaultlocale ()
-    lang = gettext.translation ("youtubed-2x", "i18n", languages=[lc], fallback=True)
-    #print lang
-    lang.install ()
-    #gettext.install ("youtubed-2x", "i18n")
-    gtk.glade.bindtextdomain ("youtubed-2x", "i18n")
-elif gettext.find ("youtubed-2x"):
-    # Installed. .mo file is in default locale location
-    #print "Found default locale"
-    gettext.install ("youtubed-2x")
-    gtk.glade.bindtextdomain ("youtubed-2x")
-elif WINDOWS and os.path.exists (os.path.join (sys.prefix, "share", "locale")):
-    # Windows when using build made with Py2exe
-    #print "Py2exe build"
-    locale_dir = os.path.join (sys.prefix, "share", "locale")
-    gettext.bindtextdomain ("youtubed-2x", locale_dir)
-    lang = gettext.translation("youtubed-2x", locale_dir, languages=[lc], fallback=True)
-    #print lang
-    lang.install ()
-    #gettext.install ("youtubed-2x", "i18n")
-    gtk.glade.bindtextdomain ("youtubed-2x", locale_dir)
-else:
-    # Installed. Try to discover locale location
-    #print "Installed"
-    locale_dir = None
-    if "XDG_DATA_DIRS" in os.environ:
-        data_dirs = os.environ["XDG_DATA_DIRS"].split (":")
-        for data_dir in data_dirs:
-            mofile = gettext.find ("youtubed-2x",
-                os.path.join (data_dir, "locale"))
-#            #print mofile
-            if mofile:
-                locale_dir = os.path.join (data_dir, "locale")
-                break
 
-    #print locale_dir
-    if locale_dir:
-        gettext.install ("youtubed-2x", locale_dir)
-        gtk.glade.bindtextdomain ("youtubed-2x", locale_dir)
-    else:
-        # If .mo file could not be found, ignore the issue.
-        # Non-translated strings will be used. Install _()
-        # to global namespace
+    if os.path.exists (os.path.join (os.path.dirname (sys.argv[0]), "i18n")):
+        # Running locally
+        logging.debug ("Running local")
+        gettext.bindtextdomain ("youtubed-2x", "i18n")
+        lc, enc = locale.getdefaultlocale ()
+        lang = gettext.translation ("youtubed-2x", "i18n", languages=[lc], fallback=True)
+        logging.debug (lang)
+
+        lang.install ()
+        #gettext.install ("youtubed-2x", "i18n")
+        gtk.glade.bindtextdomain ("youtubed-2x", "i18n")
+    elif gettext.find ("youtubed-2x"):
+        # Installed. .mo file is in default locale location
+        logging.debug ("Found default locale")
         gettext.install ("youtubed-2x")
         gtk.glade.bindtextdomain ("youtubed-2x")
+    elif WINDOWS and os.path.exists (os.path.join (sys.prefix, "share", "locale")):
+        # Windows when using build made with Py2exe
+        logging.debug ("Py2exe build")
+        locale_dir = os.path.join (sys.prefix, "share", "locale")
+        gettext.bindtextdomain ("youtubed-2x", locale_dir)
+        lang = gettext.translation("youtubed-2x", locale_dir, languages=[lc], fallback=True)
+        logging.debug (lang)
+        lang.install ()
+        #gettext.install ("youtubed-2x", "i18n")
+        gtk.glade.bindtextdomain ("youtubed-2x", locale_dir)
+    else:
+        # Installed. Try to discover locale location
+        logging.debug ("Installed")
+        locale_dir = None
+        if "XDG_DATA_DIRS" in os.environ:
+            data_dirs = os.environ["XDG_DATA_DIRS"].split (":")
+            for data_dir in data_dirs:
+                mofile = gettext.find ("youtubed-2x",
+                    os.path.join (data_dir, "locale"))
 
-#gettext.install ("youtubed-2x")
-gtk.glade.textdomain ("youtubed-2x")
-#print _
+                logging.debug (mofile)
+                if mofile:
+                    locale_dir = os.path.join (data_dir, "locale")
+                    break
 
-from youtubed2x_lib.videoitem import VideoItem
-from youtubed2x_lib import settings
-from youtubed2x_lib.parsermanager import ParserManager as parser_manager
-from youtubed2x_lib.ui.propertieswindow import PropertiesWindow
-from youtubed2x_lib.ui.models.videothreadmanager import VideoThreadManager
-from youtubed2x_lib.ui.mainwindow import YouTubeDownloader
+        logging.debug (locale_dir)
+        if locale_dir:
+            gettext.install ("youtubed-2x", locale_dir)
+            gtk.glade.bindtextdomain ("youtubed-2x", locale_dir)
+        else:
+            # If .mo file could not be found, ignore the issue.
+            # Non-translated strings will be used. Install _()
+            # to global namespace
+            gettext.install ("youtubed-2x")
+            gtk.glade.bindtextdomain ("youtubed-2x")
+
+    #gettext.install ("youtubed-2x")
+    gtk.glade.textdomain ("youtubed-2x")
+    logging.debug (_)
 
 if __name__ == '__main__':
-    # If running on Windows, write output and error messages to text files.
-    # Needed due to Py2exe
+    from youtubed2x_lib.other import WINDOWS
+    # Set up logging
+    logging_level = logging.NOTSET
     if WINDOWS:
-        sys.stdout = open ("log.txt", "w")
-        sys.stderr = open ("errors.log", "w")
+        logging.basicConfig (filename="log.txt", level=logging_level)
+    else:
+        logging.basicConfig (level=logging_level)
 
-    logging.basicConfig (level=logging.NOTSET)
     log = logging.getLogger ()
     log.debug ("This is a test")
+
+    # Must call add_translation before imports that use _
+    add_translation ()
+    from youtubed2x_lib.videoitem import VideoItem
+    from youtubed2x_lib import settings
+    from youtubed2x_lib.parsermanager import ParserManager as parser_manager
+    from youtubed2x_lib.ui.propertieswindow import PropertiesWindow
+    from youtubed2x_lib.ui.models.videothreadmanager import VideoThreadManager
+    from youtubed2x_lib.ui.mainwindow import YouTubeDownloader
 
     media_paths = [
         # Can't use __file__ here. Py2exe does not like it

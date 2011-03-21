@@ -6,6 +6,7 @@ import re
 import time
 import gtk
 import gobject
+import logging
 from threading import Thread
 import youtubed2x_lib.download as downloader
 from youtubed2x_lib.videoitem import VideoItem
@@ -21,14 +22,16 @@ class VideoDownloadThread (Thread):
         CANCELING) = range (0,7)
     _STATUS_MESSAGES = (_("Queued"), _("Getting Info"), _("Downloading"),
         _("Cancelled"), _("Complete"), _("Paused"), _("Cancelling"))
-    #print _("Cancelling")
-    #print _("Cancelling")
+
     SLEEP_HOLD = 1 # In seconds
     SPEED_UPDATE_INTERVAL = .75 # In seconds
     WAIT_DOWNLOAD_INTERVAL = .25 # In seconds
 
     def __init__ (self, thread_manager, app_settings, video, status=WAITING):
         super (self.__class__, self).__init__ ()
+        self._log = logging.getLogger ("{0}.{1}".format (__name__,
+            self.__class__.__name__))
+
         self.setDaemon (True)
         self.video = video
         self.process_id = None
@@ -47,6 +50,7 @@ class VideoDownloadThread (Thread):
         try:
             self.download_id = self.thread_manager.add_try (self)
         except InQueueException as exception:
+            self._log.info ("Thread already in queue")
             gtk.gdk.threads_enter ()
             self.thread_manager.emit ("unblock-ui")
             gtk.gdk.threads_leave ()
@@ -191,13 +195,13 @@ class VideoDownloadThread (Thread):
 
         #self.thread_manager.transcode_semaphore.acquire ()
         if os.path.exists (self.video.avi_file) and not self.app_settings.overwrite:
-            print "Output file already exists. Skipping transcode."
+            self._log.debug ("Output file already exists. Skipping transcode.")
             self._finish_thread ()
             #self.thread_manager.transcode_semaphore.release ()
             self.thread_manager.release_sem (self.download_id)
             return
         elif os.path.exists (self.video.avi_file):
-            print "Overwriting old avi file"
+            self._log.debug ("Overwriting old avi file")
             os.remove (self.video.avi_file)
 
         status = self._startFFmpeg (abitrate, vbitrate)
@@ -217,7 +221,7 @@ class VideoDownloadThread (Thread):
             return
 
         if not keep_flv_files:
-            print "Flv video deleted."
+            self._log.debug ("Flv video deleted")
             os.remove (self.video.flv_file)
 
         if self.status == self.CANCELING:
@@ -378,10 +382,10 @@ class VideoDownloadThread (Thread):
         try:
             n00b.open ()
         except downloader.FileExistException as exception:
-            print "File already exists. Skipping Download"
+            self._log.info ("File already exists. Skipping Download")
             return True
         except Exception as exception:
-            print >> sys.stderr, "%s" % exception
+            self._log.exception ("Downloading failed")
             return False
 
         self._downloader = n00b
@@ -438,10 +442,10 @@ class VideoDownloadThread (Thread):
                     n00b.open ()
                     self.thread_manager.update_status (self.download_id, speed="", eta="", status=_("Downloading"), force_update=True)
                 except downloader.FileExistException as exception:
-                    print "File already exists. Skipping Download"
+                    self._log.info ("File already exists. Skipping Download")
                     return True
                 except downloader.ResumeFail as exception:
-                    print >> sys.stderr, "%s" % exception
+                    self._log.exception ("Resume of download failed")
                     if os.path.exists (self.video.flv_file):
                         try:
                             os.remove (self.video.flv_file)
@@ -449,7 +453,7 @@ class VideoDownloadThread (Thread):
                             pass
                     return False
                 except Exception as exception:
-                    print >> sys.stderr, "%s" % exception
+                    self._log.exception ("Download failed")
                     return False
 
                 last_update = time.time ()
@@ -461,7 +465,7 @@ class VideoDownloadThread (Thread):
                     #self.thread_manager.update_download_speed (len (data))
                     #self.thread_manager.download_semaphore.release ()
                 except Exception as exception:
-                    print "%s" % exception
+                    self._log.exception ("Could not read block")
                     #self.thread_manager.download_semaphore.release ()
                     return False
 
@@ -517,7 +521,7 @@ class VideoDownloadThread (Thread):
                           # completely downloaded
             self.status = self.READY
         else:
-            print "WHY ME"
+            self._log.debug ("Something")
             # Download was cancelled after being paused
             if os.path.exists (self.video.flv_file):
                 try:
@@ -534,14 +538,16 @@ class VideoDownloadThread (Thread):
         parser_class = self.video.parser.__class__
         try:
             self.video.getVideoInformation ()
-        except (parser_class.UnknownTitle, parser_class.InvalidCommands, parser_class.URLBuildFailed, parser_class.InvalidPortal, parser_class.LoginRequired) as exception:
-            print >> sys.stderr, "%s. Stopping download." % exception
+        except (parser_class.UnknownTitle, parser_class.InvalidCommands,
+            parser_class.URLBuildFailed, parser_class.InvalidPortal,
+            parser_class.LoginRequired) as exception:
+            self._log.exception ("Stopping download")
             return False, exception.args
         except PageNotFound as exception:
-            print >> sys.stderr, "%s. Stopping download." % exception
+            self._log.exception ("Stopping download")
             return False, exception.args
         except Exception as exception:
-            print >> sys.stderr, "%s" % exception
+            self._log.exception ("Stopping download")
             return False, exception.args
 
         return True, ""
