@@ -7,6 +7,7 @@ if not sys.platform == "win32":
     pygtk.require ("2.0")
 import gtk
 import gtk.glade
+import logging
 from youtubed2x_lib.other import WINDOWS
 
 # Translation stuff
@@ -47,7 +48,8 @@ else:
     if "XDG_DATA_DIRS" in os.environ:
         data_dirs = os.environ["XDG_DATA_DIRS"].split (":")
         for data_dir in data_dirs:
-            mofile = gettext.find ("youtubed-2x", os.path.join (data_dir, "locale"))
+            mofile = gettext.find ("youtubed-2x",
+                os.path.join (data_dir, "locale"))
 #            #print mofile
             if mofile:
                 locale_dir = os.path.join (data_dir, "locale")
@@ -82,6 +84,10 @@ if __name__ == '__main__':
         sys.stdout = open ("log.txt", "w")
         sys.stderr = open ("errors.log", "w")
 
+    logging.basicConfig (level=logging.NOTSET)
+    log = logging.getLogger ()
+    log.debug ("This is a test")
+
     media_paths = [
         # Can't use __file__ here. Py2exe does not like it
         os.path.join (os.path.dirname (sys.argv[0]), "data"), # Running locally
@@ -99,7 +105,8 @@ if __name__ == '__main__':
     try:
         app_settings.readConfigFile ()
     except app_settings.InvalidConfig as exception:
-        print >> sys.stderr, "%s.\nReverting to default settings." % exception
+        logging.exception("Invalid configuration file")
+        logging.info ("Reverting to default settings")
         app_settings.setDefaults ()
 
     parser_manager.importParsers ()
@@ -113,7 +120,7 @@ if __name__ == '__main__':
             break
 
     if not gladefile:
-        sys.stderr.write ("Glade file \"%s\" could not be found. Exiting.\n" % filename)
+        logging.critical ("Glade file \"%s\" could not be found. Exiting.", filename)
         sys.exit (1)
 
     thread_manager = VideoThreadManager (app_settings)

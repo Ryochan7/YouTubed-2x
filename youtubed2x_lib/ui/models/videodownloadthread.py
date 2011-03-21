@@ -17,8 +17,10 @@ if WINDOWS:
     import win32api
 
 class VideoDownloadThread (Thread):
-    _STATUS_ITEMS = (WAITING, PARSING, READY, CANCELLED, DONE, PAUSED, CANCELING) = range (0,7)
-    _STATUS_MESSAGES = (_("Queued"), _("Getting Info"), _("Downloading"), _("Cancelled"), _("Complete"), _("Paused"), _("Cancelling"))
+    _STATUS_ITEMS = (WAITING, PARSING, READY, CANCELLED, DONE, PAUSED,
+        CANCELING) = range (0,7)
+    _STATUS_MESSAGES = (_("Queued"), _("Getting Info"), _("Downloading"),
+        _("Cancelled"), _("Complete"), _("Paused"), _("Cancelling"))
     #print _("Cancelling")
     #print _("Cancelling")
     SLEEP_HOLD = 1 # In seconds
@@ -51,11 +53,15 @@ class VideoDownloadThread (Thread):
             return
 
         if self.status == self.DONE:
-            self.thread_manager.update_status (self.download_id, title=self.video.title, url=self.video.parser.page_url, force_update=True)
+            self.thread_manager.update_status (self.download_id,
+                title=self.video.title, url=self.video.parser.page_url,
+                force_update=True)
             self._finish_thread ()
             return
         elif self.status == self.CANCELLED:
-            self.thread_manager.update_status (self.download_id, title=self.video.title, url=self.video.parser.page_url, force_update=True)
+            self.thread_manager.update_status (self.download_id,
+                title=self.video.title, url=self.video.parser.page_url,
+                force_update=True)
             self._finish_thread (_("Cancelling"), False)
             return
 

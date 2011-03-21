@@ -25,7 +25,8 @@ class VideoThreadManager (gobject.GObject):
 
     def __init__ (self, app_settings):
         super (self.__class__, self).__init__ ()
-        logging.info ("GAMMA")
+        self._log = logging.getLogger ("{0}.{1}".format (__name__,
+            self.__class__.__name__))
 
         self.tree_items = {}
         self._worker_threads_ids = []

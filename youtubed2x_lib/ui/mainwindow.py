@@ -1,3 +1,4 @@
+import logging
 import os
 import subprocess
 import webbrowser
@@ -15,8 +16,11 @@ from youtubed2x_lib.other import WINDOWS
 class YouTubeDownloader (object):
     GTK_RIGHT_CLICK_BUTTON = 3
 
-    def __init__ (self, gladefile, app_settings, thread_manager, parser_manager, prop_cont):
+    def __init__ (self, gladefile, app_settings, thread_manager,
+        parser_manager, prop_cont):
         self._video_bitrate_options = [384, 512, 768, 1024, 1536, 2000]
+        self._log = logging.getLogger ("{0}.{1}".format (__name__,
+            self.__class__.__name__))
 
         self.gladefile = gladefile
         self.window = gtk.glade.XML (self.gladefile)
@@ -84,7 +88,8 @@ class YouTubeDownloader (object):
         self.auto_download_check.set_active (app_settings.auto_download)
 
         self.treeview1 = self.window.get_widget ("treeview1")
-        self.column1 = gtk.TreeViewColumn ("URL", gtk.CellRendererText(), text=0)
+        self.column1 = gtk.TreeViewColumn ("URL", gtk.CellRendererText(),
+            text=0)
         self.column1.set_sizing (gtk.TREE_VIEW_COLUMN_FIXED)
 #        self.column1.set_min_width (230)
         self.column1.set_resizable (True)
@@ -103,20 +108,25 @@ class YouTubeDownloader (object):
         self.column2.set_resizable (True)
         self.column2.set_expand (True)
 
-        self.column5 = gtk.TreeViewColumn ("Speed", gtk.CellRendererText(), text=4)
+        self.column5 = gtk.TreeViewColumn ("Speed",
+            gtk.CellRendererText(), text=4)
         self.column5.set_sizing (gtk.TREE_VIEW_COLUMN_FIXED)
         self.column5.set_min_width (100)
 
-        self.column6 = gtk.TreeViewColumn ("Size", gtk.CellRendererText (), text=5)
+        self.column6 = gtk.TreeViewColumn ("Size",
+            gtk.CellRendererText (), text=5)
         self.column6.set_sizing (gtk.TREE_VIEW_COLUMN_FIXED)
         self.column6.set_min_width (100)
 
-        self.column3 = gtk.TreeViewColumn ("Progress", gtk.CellRendererProgress(), value=2)
+        self.column3 = gtk.TreeViewColumn ("Progress",
+            gtk.CellRendererProgress(), value=2)
         self.column3.set_min_width (75)
-        self.column4 = gtk.TreeViewColumn ("Status", gtk.CellRendererText(), text=3)
+        self.column4 = gtk.TreeViewColumn ("Status",
+            gtk.CellRendererText(), text=3)
         self.column4.set_min_width (100)
         self.column4.set_sizing (gtk.TREE_VIEW_COLUMN_FIXED)
-        self.column7 = gtk.TreeViewColumn ("Time Left", gtk.CellRendererText(), text=6)
+        self.column7 = gtk.TreeViewColumn ("Time Left",
+            gtk.CellRendererText(), text=6)
         self.column7.set_min_width (110)
         self.column7.set_sizing (gtk.TREE_VIEW_COLUMN_FIXED)
 
@@ -183,7 +193,8 @@ class YouTubeDownloader (object):
 
         self.thread_manager.connect ("unblock-ui", self.unlock_partial_ui)
         self.thread_manager.connect ("block-ui", self.block_partial_ui)
-        self.thread_manager.connect ("speed_progress_update", self.update_speed_statusbar)
+        self.thread_manager.connect ("speed_progress_update",
+            self.update_speed_statusbar)
         self.thread_manager.connect ("progress_update", self.update_statusbar)
 
         # Populate sites_textview with hooks to controller methods when moving over text
@@ -199,20 +210,25 @@ class YouTubeDownloader (object):
         name_list.sort ()
 
         textbuffer = self.sites_textview.get_buffer ()
-        textbuffer.insert (textbuffer.get_end_iter (), "Supported Sites\n-----------------------\n\n")
+        textbuffer.insert (textbuffer.get_end_iter (),
+            "Supported Sites\n-----------------------\n\n")
 
         for i, name in enumerate (name_list):
             newtag = textbuffer.create_tag ("url-tag%i" % i)
             newtag.set_property ("underline", pango.UNDERLINE_SINGLE)
             newtag.set_property ("foreground", "#2750FF")
-            newtag.connect ("event", self.sites_textview_link_button_press_event)
+            newtag.connect ("event",
+                self.sites_textview_link_button_press_event)
             newtag.set_data ("link", tmp_dic[name].domain_str)
 
             parser_version = tmp_dic[name].version
             textbuffer.insert (textbuffer.get_end_iter (), "* ")
-            textbuffer.insert_with_tags_by_name (textbuffer.get_end_iter (), name, newtag.get_property ("name"))
+            textbuffer.insert_with_tags_by_name (textbuffer.get_end_iter (),
+                name, newtag.get_property ("name"))
 #            sites_str += "* %s    (%s/%s/%s)\n" % (name, parser_version.month, parser_version.day, parser_version.year)
-            textbuffer.insert (textbuffer.get_end_iter (), "   (%s/%s/%s)\n" % (parser_version.month, parser_version.day, parser_version.year))
+            textbuffer.insert (textbuffer.get_end_iter (),
+                "   ({0}/{1}/{2})\n".format (parser_version.month,
+                parser_version.day, parser_version.year))
 
     def update_statusbar (self, widget=None, message=None, interval=0):
         if message == None:
@@ -252,7 +268,7 @@ class YouTubeDownloader (object):
         if not hasattr (thread.video.parser.__class__, "getImageData") and not callable (thread.video.parser.__class__.getImageData):
             return
 
-        image_data = thread.video.parser.__class__.getImageData ()
+        image_data = thread.video.parser.getImageData ()
         image = gtk.gdk.pixbuf_new_from_data (image_data, gtk.gdk.COLORSPACE_RGB, True, 8, 16, 16, 16*4)
         cell.set_property ('pixbuf', image)
         return
@@ -377,13 +393,13 @@ class YouTubeDownloader (object):
         thread_id = self.thread_manager.getThreadId (url)
         thread = self.thread_manager.getVideoThread (thread_id)
 
-        if thread and thread.isAlive () and thread.status == thread.__class__.WAITING:
+        if thread and thread.isAlive () and thread.status == thread.WAITING:
             self.toolbutton1.set_sensitive (True)
             self.toolbutton2.set_sensitive (True)
             self.toolbutton2.set_label ("Remove")
             self.pause_toolbutton.set_sensitive (False)
             self.pause_toolbutton.set_label ("Pause")
-        elif thread and thread.isAlive () and thread.status == thread.__class__.READY:
+        elif thread and thread.isAlive () and thread.status == thread.READY:
             self.toolbutton1.set_sensitive (False)
             self.toolbutton2.set_sensitive (True)
             self.toolbutton2.set_label ("Cancel")
@@ -392,20 +408,20 @@ class YouTubeDownloader (object):
             else:
                 self.pause_toolbutton.set_sensitive (False)
             self.pause_toolbutton.set_label ("Pause")
-        elif thread and thread.isAlive () and thread.status == thread.__class__.PARSING:
+        elif thread and thread.isAlive () and thread.status == thread.PARSING:
             self.toolbutton1.set_sensitive (False)
             self.toolbutton2.set_sensitive (False)
             self.toolbutton2.set_label ("Remove")
             self.pause_toolbutton.set_sensitive (False)
             self.pause_toolbutton.set_label ("Pause")
         # Handle case of a cancelled download waiting to stop
-        elif thread and thread.isAlive () and thread.status == thread.__class__.CANCELING:
+        elif thread and thread.isAlive () and thread.status == thread.CANCELING:
             self.toolbutton1.set_sensitive (False)
             self.toolbutton2.set_sensitive (False)
             self.toolbutton2.set_label ("Wait")
             self.pause_toolbutton.set_sensitive (False)
             self.pause_toolbutton.set_label ("Pause")
-        elif thread and thread.isAlive () and thread.status == thread.__class__.PAUSED:
+        elif thread and thread.isAlive () and thread.status == thread.PAUSED:
             self.toolbutton1.set_sensitive (False)
             self.toolbutton2.set_sensitive (True)
             self.toolbutton2.set_label ("Cancel")
@@ -492,9 +508,9 @@ class YouTubeDownloader (object):
         url = model.get_value (selection, 0)
         thread_id = self.thread_manager.getThreadId (url)
         thread = self.thread_manager.getVideoThread (thread_id)
-        if thread.status == thread.__class__.READY and thread._downloader:
+        if thread.status == thread.READY and thread._downloader:
             thread.pause ()
-        elif thread.status == thread.__class__.PAUSED:
+        elif thread.status == thread.PAUSED:
             thread.setReady ()
 
         self.select_item ()
@@ -511,13 +527,13 @@ class YouTubeDownloader (object):
 
         if thread and thread.isAlive () and thread.status == thread.WAITING:
             self.thread_manager.removeDownload (thread_id)
-        elif thread and thread.isAlive () and thread.status == thread.__class__.READY:
+        elif thread and thread.isAlive () and thread.status == thread.READY:
             self.thread_manager.finishDownload (thread_id)
         # Handle case of a cancelled download waiting to stop
-        elif thread and thread.isAlive () and thread.status == thread.__class__.CANCELING:
+        elif thread and thread.isAlive () and thread.status == thread.CANCELING:
             print "Already cancelled. Waiting. Don't do anything"
             return
-        elif thread and thread.isAlive () and thread.status == thread.__class__.PAUSED:
+        elif thread and thread.isAlive () and thread.status == thread.PAUSED:
             self.thread_manager.finishDownload (thread_id)
         elif thread:
             self.thread_manager.removeDownload (thread_id)
@@ -540,7 +556,7 @@ class YouTubeDownloader (object):
                 self.thread_manager)
 
             # Move this logic to VideoItemMenuController class
-            if thread.status == thread.__class__.DONE:
+            if thread.status == thread.DONE:
                 video_file_input = thread.video.flv_file
                 video_file_output = thread.video.avi_file
                 video_input_exists = os.path.exists (video_file_input)
