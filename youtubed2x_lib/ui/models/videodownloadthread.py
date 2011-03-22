@@ -541,13 +541,13 @@ class VideoDownloadThread (Thread):
         except (parser_class.UnknownTitle, parser_class.InvalidCommands,
             parser_class.URLBuildFailed, parser_class.InvalidPortal,
             parser_class.LoginRequired) as exception:
-            self._log.exception ("Stopping download")
+            self._log.exception ("Parsing of page failed")
             return False, exception.args
         except PageNotFound as exception:
-            self._log.exception ("Stopping download")
+            self._log.exception ("Page could not be found")
             return False, exception.args
         except Exception as exception:
-            self._log.exception ("Stopping download")
+            self._log.exception ("Unexpected exception while parsing page")
             return False, exception.args
 
         return True, ""

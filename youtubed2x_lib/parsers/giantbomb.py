@@ -1,41 +1,35 @@
 import re
 import datetime
-from youtubed2x_lib.parsers import Parser_Helper, getPage, mimevault
-
+from youtubed2x_lib.parsers import Parser_Helper, mimevault
 
 class GiantBomb_Parser (Parser_Helper):
-    """Parser for GiantBomb pages. Updated 01/15/2010"""
-    const_video_url_re = re.compile (r'^(?:http://)?(?:www\.)?giantbomb\.com/(\S+)')
+    """Parser for GiantBomb pages. Updated 03/22/2011"""
+    const_video_url_re = re.compile (
+        r"""^(?:http://)?(?:www\.)?giantbomb\.com/(\S+)"""
+    )
     video_url_str = 'http://www.giantbomb.com/%s'
     video_details_url = 'http://www.giantbomb.com/video/params/%s/'
 
-    video_title_re = re.compile (r'<title><!\[CDATA\[([^\[]*)]]></title>')
-    video_embed_code_re = re.compile (r'flashvars="paramsURI=http%3A//www.giantbomb.com/video/params/(\d+)/(?:\?w=1)?"')
-    video_url_params_re = re.compile (r'<URI bitRate="700">(\S+)</URI>')
+    video_title_re = re.compile (
+        r"""<div class="player-wrapper(?:.*)<div class="info">(?:.*)<h2>(.*)</h2>""",
+        re.DOTALL
+    )
+    video_url_params_re = re.compile (
+        r"""new VideoPlayer\(\{.*videoUrls: \{.*"progressive_low": "(\S+)"(?:.*)\}""",
+        re.DOTALL
+    )
 
     parser_type = "GiantBomb"
     domain_str = "http://www.giantbomb.com/"
     host_str = "giantbomb.com"
     mime_base = mimevault.MimeVault ()
     mime_base.add_type ("application/octet-stream", ".flv")
-    version = datetime.date (2010, 1, 15)
-
-
-    def getVideoPage (self, account="", password=""):
-        page, newurl = super (GiantBomb_Parser, self).getVideoPage (account, password)
-        match = self.__class__.video_embed_code_re.search (page)
-        if match:
-            newurl = self.__class__.video_details_url % match.group (1)
-            page, newurl = getPage (newurl)
-
-        return page, newurl
-
+    version = datetime.date (2011, 3, 22)
 
     def _parseRealURL (self, commands):
         """Get the real url for the video"""
         real_url = commands[0]
         return real_url
-
 
     @staticmethod
     def getImageData ():

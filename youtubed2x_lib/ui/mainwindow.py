@@ -481,7 +481,9 @@ class YouTubeDownloader (object):
         tree = self.treeview1.get_selection ()
         model, selection = tree.get_selected ()
         if not selection:
-            tree.select_path (self.thread_manager.queue_length ()-1,)
+            num_threads = self.thread_manager.queue_length ()
+            path = (num_threads - 1) if num_threads > 0 else 0
+            tree.select_path (path)
         else:
             index = model.get_path (selection)[0]
             tree.select_path (index)
@@ -599,7 +601,9 @@ class YouTubeDownloader (object):
 
         youtube_video = self.parser_manager.validateURL (newtext)
         if not youtube_video:
-            self.update_statusbar ("An invalid url was passed. Try again.", 2500)
+            self.update_statusbar (
+                message="An invalid url was passed. Try again.", interval=2500
+            )
             self.entry1.set_text ('')
             return
         self.block_ui ()
