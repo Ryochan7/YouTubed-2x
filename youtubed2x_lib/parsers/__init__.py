@@ -4,7 +4,7 @@ from youtubed2x_lib.other import getPage, PageNotFound
 import youtubed2x_lib.mimevault as mimevault
 
 class Parser_Helper (object):
-    """Abstract parser class. Updated 01/15/2010"""
+    """Abstract parser class. Updated 03/22/2011"""
     is_portal = False
     parser_type = "Generic"
     host_str = None
@@ -12,17 +12,19 @@ class Parser_Helper (object):
 
     def __init__ (self, video_id):
         self.video_id = video_id
-        self.page_url = self.video_url_str % video_id
-        self.embed_file_type = "video/flv" # Normally assumed to be flv if parser does not raise an exception
+        if "%s" in self.video_url_str:
+            self.page_url = self.video_url_str % video_id
+        else:
+            self.page_url = self.video_url_str.format (video_id)
+        # Normally assumed to be flv if parser does not raise an exception
+        self.embed_file_type = "video/flv"
         self.page_dump = ""
 
-
     def __str__ (self):
-        return "<%s: %s>" % (self.__class__.parser_type, self.page_url)
+        return "<{0}: {1}>".format (self.__class__.parser_type, self.page_url)
 
     def __repr__ (self):
-        return "<%s: %s>" % (self.__class__.parser_type, self.page_url)
-
+        return "<{0}: {1}>".format (self.__class__.parser_type, self.page_url)
 
     @classmethod
     def getType (cls):
@@ -31,18 +33,15 @@ class Parser_Helper (object):
     def getEmbedType (self):
         return self.embed_file_type
 
-
     def setEmbedType (self, embed_type):
         if self.__class__.mime_base.guess_extension (embed_type):
             self.embed_file_type = embed_type
-
 
     def getEmbedExtension (self):
         ext = self.__class__.mime_base.guess_extension (self.embed_file_type)
         if not ext:
             ext = ".flv"
         return ext
-
 
     class LoginRequired (Exception):
         pass
@@ -59,7 +58,6 @@ class Parser_Helper (object):
     class InvalidPortal (Exception):
         pass
 
-
     @classmethod
     def checkURL (cls, url):
         match = cls.const_video_url_re.match (url)
@@ -68,18 +66,15 @@ class Parser_Helper (object):
         else:
             return None
 
-
     def getVideoPage (self, account="", password=""):
         page, newurl = getPage (self.page_url)
         #self.page_dump = page
         return page, newurl
 
-
     def parseVideoPage (self, page_dump=""):
         if not isinstance (page_dump, str):
             raise TypeError ("Argument must be a string representing the HTML code for a page")
         
-
 #        title = self._parseTitle (page_dump)
 #        commands = self._parsePlayerCommands (page_dump)
 
@@ -103,15 +98,15 @@ class Parser_Helper (object):
         #print self.getEmbedExtension ()
         return title, download_url, headers
 
-
     def _parseTitle (self):
         match = self.video_title_re.search (self.page_dump)
         if not match:
-            raise self.__class__.UnknownTitle ("Could not find the title")
+            raise self.__class__.UnknownTitle (
+                "Could not find the title"
+            )
         else:
             title = match.group (1)
         return title
-
 
     def _parsePlayerCommands (self):
         """Get the commands needed to get the video player"""
@@ -122,19 +117,14 @@ class Parser_Helper (object):
             commands = match.groups ()
         return commands
 
-
     def _getContentInformation (self, url):
         page, newurl, headers = getPage (url, read_page=False, get_headers=True)
         return headers
-
 
     def _parseRealURL (self, commands):
         """Abstract function that must be defined in all sub-classes."""
         raise NotImplementedError
 
-
     @staticmethod
     def getImageData ():
         raise NotImplementedError
-
-

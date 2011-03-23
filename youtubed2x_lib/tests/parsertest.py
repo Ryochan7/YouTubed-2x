@@ -17,7 +17,7 @@ test_dict = {
     "myspacetv": "http://vids.myspace.com/index.cfm?fuseaction=vids.individual&videoid=19941883&searchid=a8a1777e-b225-4199-9787-e51cd8f2df2c",
     "guba": "http://www.guba.com/watch/3000017203",
     "dailymotion": "http://www.dailymotion.com/relevance/search/kanon%2B2006/video/x2myny_amv-kanon_school",
-    "giantbomb": "http://www.giantbomb.com/news/ogle-the-final-fantasy-xiii-trailer-repeatedly/872/",
+    "giantbomb": "http://www.giantbomb.com/final-fantasy-xiii-gameplay-trailer/17-190/",
     "screwattack": "http://screwattack.com/videos/AVGN-Odyssey",
     "gametrailers": "http://www.gametrailers.com/video/angry-video-screwattack/37368",
     "escapistmagazine": "http://www.escapistmagazine.com/videos/view/zero-punctuation/789-Prototype",
@@ -35,7 +35,7 @@ class ParserTest (unittest.TestCase):
 
     def _get_information (self, url):
         video = parser_manager.validateURL (url)
-        self.assert_ (video, "The URL (%s) tested was invalid" % url)
+        self.assert_ (video, "The URL {0} tested was invalid".format (url))
         video.getVideoInformation ()
 
     def test_youtube_parser (self):
