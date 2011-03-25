@@ -41,8 +41,8 @@ class VideoItemMenu (object):
             return
 
         url = model.get_value (selection, 0)
-        thread_id = self.thread_manager.getThreadId (url)
-        thread = self.thread_manager.getVideoThread (thread_id)
+        thread_id = self.thread_manager.get_thread_id (url)
+        thread = self.thread_manager.get_video_thread (thread_id)
         clipboard = gtk.Clipboard ()
         clipboard.set_text (thread.video.real_url)
 
@@ -53,8 +53,8 @@ class VideoItemMenu (object):
             return
 
         url = model.get_value (selection, 0)
-        thread_id = self.thread_manager.getThreadId (url)
-        thread = self.thread_manager.getVideoThread (thread_id)
+        thread_id = self.thread_manager.get_thread_id (url)
+        thread = self.thread_manager.get_video_thread (thread_id)
 
         if os.path.exists (thread.video.flv_file):
             video_file = thread.video.flv_file
@@ -74,8 +74,8 @@ class VideoItemMenu (object):
             return
 
         url = model.get_value (selection, 0)
-        thread_id = self.thread_manager.getThreadId (url)
-        thread = self.thread_manager.getVideoThread (thread_id)
+        thread_id = self.thread_manager.get_thread_id (url)
+        thread = self.thread_manager.get_video_thread (thread_id)
         if os.path.exists (thread.video.avi_file):
             video_file = thread.video.avi_file
         else:
@@ -94,8 +94,8 @@ class VideoItemMenu (object):
             return
 
         url = model.get_value (selection, 0)
-        thread_id = self.thread_manager.getThreadId (url)
-        thread = self.thread_manager.getVideoThread (thread_id)
+        thread_id = self.thread_manager.get_thread_id (url)
+        thread = self.thread_manager.get_video_thread (thread_id)
         if os.path.exists (thread.video.flv_file):
             video_file = thread.video.flv_file
         elif os.path.exists (thread.video.avi_file):

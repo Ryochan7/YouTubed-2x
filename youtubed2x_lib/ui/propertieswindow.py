@@ -1,11 +1,20 @@
-import sys
 import gtk
+import gobject
+import logging
 from youtubed2x_lib.videoitem import VideoItem
 from youtubed2x_lib.other import set_proxy, remove_proxy
 
 
-class PropertiesWindow (object):
-    def __init__ (self, glade_file, app_settings, thread_manager):
+class PropertiesWindow (gobject.GObject):
+    __gsignals__ = {
+        "settings_updated": (gobject.SIGNAL_RUN_FIRST, None, (object,)),
+    }
+
+    def __init__ (self, glade_file, app_settings):
+        super (self.__class__, self).__init__ ()
+        self._log = logging.getLogger ("{0}.{1}".format (__name__,
+            self.__class__.__name__))
+
         self.gladefile = glade_file
         self.window = gtk.glade.XML (self.gladefile, "properties_win")
         self.main_window = self.window.get_widget ("properties_win")
@@ -22,7 +31,6 @@ class PropertiesWindow (object):
         self.use_proxy_checkbutton = self.window.get_widget ("use_proxy_checkbutton")
 
         self.app_settings = app_settings
-        self.thread_manager = thread_manager
 
         connect_dict = {
             "on_ok_button_clicked": self.apply_changes,
@@ -82,8 +90,8 @@ class PropertiesWindow (object):
             if temp_server and temp_port:
                 try:
                     set_proxy (temp_server, temp_port)
-                except Exception as exception:
-                    print >> sys.stderr, "%s. Disabling proxy." % exception
+                except Exception:
+                    self._log.exception ("Disabling proxy")
                     self.app_settings.use_proxy = False
                     self.use_proxy_checkbutton.set_active (self.app_settings.use_proxy)
 
@@ -94,8 +102,8 @@ class PropertiesWindow (object):
         temp = self.process_limit_spin.get_value_as_int ()
         if temp != self.app_settings.process_limit:
             self.app_settings.process_limit = temp
-            self.thread_manager.alter_sem (self.app_settings.process_limit)
 
+        self.emit ("settings_updated", self.app_settings)
         self.main_window.hide ()
 
     def cancel (self, widget, data=None):

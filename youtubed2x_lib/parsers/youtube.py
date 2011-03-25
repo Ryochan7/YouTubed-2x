@@ -7,7 +7,10 @@ from youtubed2x_lib.parsers import Parser_Helper, getPage, PageNotFound
 class YouTube_Parser (Parser_Helper):
     """Parser for YouTube pages. Updated 01/15/2010"""
     # URLs and RegExp statements from youtube-dl (some slightly modified)
-    const_video_url_re = re.compile (r'^(?:http://)?(?:\w+\.)?youtube\.com/(?:v/|(?:watch(?:\.php)?)?\?(?:.+&)?v=)?([0-9A-Za-z_-]+)(?(1)[&/].*)?$')
+    const_video_url_re = re.compile (
+        r"""^(?:http://)?(?:\w{3}\.)?youtube\.com/(?:v/|(?:watch(?:\.php)?)?"""
+        r"""\?(?:.+&)?v=)?([0-9A-Za-z_-]+)(?(1)[&/].*)?$"""
+    )
     video_url_str = 'http://www.youtube.com/watch?v=%s'
     video_url_real_str = 'http://www.youtube.com/get_video?video_id=%s&t=%s'
     video_url_real_high_str = "%s&fmt=18" % video_url_real_str

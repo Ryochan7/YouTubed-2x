@@ -11,7 +11,6 @@ from threading import Thread
 import youtubed2x_lib.download as downloader
 from youtubed2x_lib.videoitem import VideoItem
 from youtubed2x_lib.other import PageNotFound, WINDOWS
-from youtubed2x_lib.ui.exceptions.inqueueexception import InQueueException
 
 if WINDOWS:
     import win32process
@@ -20,8 +19,16 @@ if WINDOWS:
 class VideoDownloadThread (Thread):
     _STATUS_ITEMS = (WAITING, PARSING, READY, CANCELLED, DONE, PAUSED,
         CANCELING) = range (0,7)
-    _STATUS_MESSAGES = (_("Queued"), _("Getting Info"), _("Downloading"),
-        _("Cancelled"), _("Complete"), _("Paused"), _("Cancelling"))
+
+    _STATUS_MESSAGES = {
+        WAITING: _("Queued"),
+        PARSING: _("Getting Info"),
+        READY: _("Downloading"),
+        CANCELLED: _("Cancelled"),
+        DONE: _("Complete"),
+        PAUSED: _("Paused"),
+        CANCELING: _("Cancelling"),
+    }
 
     SLEEP_HOLD = 1 # In seconds
     SPEED_UPDATE_INTERVAL = .75 # In seconds
@@ -44,18 +51,10 @@ class VideoDownloadThread (Thread):
         if status in self._STATUS_ITEMS:
             self.status = status
         else:
-            raise Exception ("'%s' is not a valid status" % status)
+            raise Exception ("'{0}' is not a valid status".format (status))
 
     def run (self):
-        try:
-            self.download_id = self.thread_manager.add_try (self)
-        except InQueueException as exception:
-            self._log.info ("Thread already in queue")
-            gtk.gdk.threads_enter ()
-            self.thread_manager.emit ("unblock-ui")
-            gtk.gdk.threads_leave ()
-            return
-
+        # Restored session tests. Possibly delegate to VideoThreadManager
         if self.status == self.DONE:
             self.thread_manager.update_status (self.download_id,
                 title=self.video.title, url=self.video.parser.page_url,
@@ -69,6 +68,7 @@ class VideoDownloadThread (Thread):
             self._finish_thread (_("Cancelling"), False)
             return
 
+        # Check if video page needs to be parsed
         if not self.video.title and not self.video.real_url:
             self.status = self.PARSING
             status, message = self._parsePage ()
@@ -83,16 +83,38 @@ class VideoDownloadThread (Thread):
             else:
                 self.status = self.WAITING
 
-
-        if self.video.getFileSize () > 0 and os.path.exists (self.video.flv_file):
+        # These tests are done after parsing is complete
+        if self.video.getFileSize () > 0 and (
+            os.path.exists (self.video.flv_file)):
+            # File already exists. Update video info and calculate
+            # percentage of video downloaded
             current_file_size = os.path.getsize (self.video.flv_file)
-            current_percentage = min (100, current_file_size / float (self.video.getFileSize ()) * 100)
+            current_percentage = min (100,
+                current_file_size / float (self.video.getFileSize ()) * 100)
             self.status = self.PAUSED
-            self.thread_manager.update_status (self.download_id, title=self.video.title, url=self.video.parser.page_url, progress=current_percentage, size=downloader.FileDownloader.humanizeSize (self.video.getFileSize ()), status=self._STATUS_MESSAGES[self.PAUSED], force_update=True)
+            self.thread_manager.update_status (self.download_id,
+                title=self.video.title, url=self.video.parser.page_url,
+                progress=current_percentage,
+                size=downloader.FileDownloader.humanizeSize (
+                self.video.getFileSize ()),
+                status=self._STATUS_MESSAGES[self.PAUSED], force_update=True
+            )
         elif self.video.getFileSize () > 0:
-            self.thread_manager.update_status (self.download_id, title=self.video.title, url=self.video.parser.page_url, progress=0, size=downloader.FileDownloader.humanizeSize (self.video.getFileSize ()), status=self._STATUS_MESSAGES[self.WAITING], force_update=True)
+            # File does not exist. Update video info
+            self.thread_manager.update_status (self.download_id,
+                title=self.video.title, url=self.video.parser.page_url,
+                progress=0,
+                size=downloader.FileDownloader.humanizeSize (
+                self.video.getFileSize ()),
+                status=self._STATUS_MESSAGES[self.WAITING], force_update=True
+            )
         else:
-            self.thread_manager.update_status (self.download_id, title=self.video.title, url=self.video.parser.page_url, progress=0, size=_("Unknown"), status=self._STATUS_MESSAGES[self.WAITING], force_update=True)
+            # File size of remote video is unknown. Show known info
+            self.thread_manager.update_status (self.download_id,
+                title=self.video.title, url=self.video.parser.page_url, progress=0,
+                size=_("Unknown"), status=self._STATUS_MESSAGES[self.WAITING],
+                force_update=True
+            )
 
         auto_download = self.app_settings.auto_download
         display_waiting = False
@@ -101,17 +123,20 @@ class VideoDownloadThread (Thread):
             if self._has_sem:
                 self.status = self.READY
             else:
-                self.thread_manager.update_status (self.download_id, status=_("Waiting"), force_update=True)
+                self.thread_manager.update_status (self.download_id,
+                    status=_("Waiting"), force_update=True)
                 display_waiting = True
 
         gtk.gdk.threads_enter ()
         self.thread_manager.emit ("unblock-ui")
         gtk.gdk.threads_leave ()
 
-        while self.status != self.READY and self.status != self.CANCELING and not self._has_sem:
+        while self.status != self.READY and self.status != self.CANCELING and (
+            not self._has_sem):
             time.sleep (self.SLEEP_HOLD)
             if auto_download:
-                self._has_sem = self.thread_manager.acquire_sem (self.download_id)
+                self._has_sem = self.thread_manager.acquire_sem (
+                    self.download_id)
                 if self._has_sem:
                     self.status = self.READY
 
@@ -119,12 +144,12 @@ class VideoDownloadThread (Thread):
         # a download manually. Make sure to obey process limit
         while not self._has_sem and self.status != self.CANCELING:
             if not display_waiting:
-                self.thread_manager.update_status (self.download_id, status=_("Waiting"), force_update=True)
+                self.thread_manager.update_status (self.download_id,
+                    status=_("Waiting"), force_update=True)
                 display_waiting = True
 
             time.sleep (self.SLEEP_HOLD)
             self._has_sem = self.thread_manager.acquire_sem (self.download_id)
-
 
         if self.status == self.CANCELING:
             self.status = self.CANCELLED
@@ -146,7 +171,8 @@ class VideoDownloadThread (Thread):
         self.video.setFileFormat (self.app_settings.format)
 
         if self.app_settings.sitedirs:
-            if not os.path.isdir (os.path.join (self.app_settings.output_dir, self.video.parser.getType ())):
+            if not os.path.isdir (os.path.join (self.app_settings.output_dir,
+                self.video.parser.getType ())):
                 try:
                     os.mkdir (os.path.join (self.app_settings.output_dir, self.video.parser.getType ()))
                 except OSError:
@@ -154,7 +180,8 @@ class VideoDownloadThread (Thread):
                     self._finish_thread ("Dir Write Failed", False)
                     return
 
-            self.video.setFilePaths (os.path.join (self.app_settings.output_dir, self.video.parser.getType ()))
+            self.video.setFilePaths (os.path.join (
+                self.app_settings.output_dir, self.video.parser.getType ()))
         else:
             self.video.setFilePaths (self.app_settings.output_dir)
 
@@ -194,8 +221,9 @@ class VideoDownloadThread (Thread):
             return
 
         #self.thread_manager.transcode_semaphore.acquire ()
-        if os.path.exists (self.video.avi_file) and not self.app_settings.overwrite:
-            self._log.debug ("Output file already exists. Skipping transcode.")
+        if os.path.exists (self.video.avi_file) and (
+            not self.app_settings.overwrite):
+            self._log.debug ("Output file already exists. Skipping transcode")
             self._finish_thread ()
             #self.thread_manager.transcode_semaphore.release ()
             self.thread_manager.release_sem (self.download_id)
@@ -238,7 +266,8 @@ class VideoDownloadThread (Thread):
         if done:
             self.status = self.DONE
 
-        self.thread_manager.update_status (self.download_id, progress=100, status=print_status, speed="", size="", eta="", force_update=True)
+        self.thread_manager.update_status (self.download_id, progress=100,
+            status=print_status, speed="", size="", eta="", force_update=True)
 
         gtk.gdk.threads_enter ()
         self.thread_manager.emit ("block-ui")
@@ -284,9 +313,18 @@ class VideoDownloadThread (Thread):
         # Get flv video file information (resolution, framerate)
         try:
             if not WINDOWS:
-                process = subprocess.Popen ([self.video.command_dict["application"], "-i", self.video.flv_file], stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+                process = subprocess.Popen (
+                    [self.video.command_dict["application"], "-i",
+                    self.video.flv_file], stderr=subprocess.PIPE,
+                    stdin=subprocess.PIPE
+                )
             else:
-                process = subprocess.Popen ([self.video.command_dict["application"], "-i", self.video.flv_file], stderr=subprocess.PIPE, stdin=subprocess.PIPE, stdout=subprocess.PIPE, creationflags=win32process.CREATE_NO_WINDOW)
+                process = subprocess.Popen (
+                    [self.video.command_dict["application"], "-i",
+                    self.video.flv_file], stderr=subprocess.PIPE,
+                    stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                    creationflags=win32process.CREATE_NO_WINDOW
+                )
                 process.stdout.close ()
                 process.stdin.close ()
             process.wait ()
@@ -298,7 +336,8 @@ class VideoDownloadThread (Thread):
             vid_length, vid_width = match.groups ()
             #print match.group (0)
             vid_length, vid_width = int (vid_length), int (vid_width)
-            command = self.video.buildCommandList (abitrate, vbitrate, vid_length, vid_width)
+            command = self.video.buildCommandList (abitrate, vbitrate,
+                vid_length, vid_width)
         else:
             command = self.video.buildCommandList (abitrate, vbitrate)
 
@@ -310,12 +349,20 @@ class VideoDownloadThread (Thread):
         duration = None
         percentage = 0
 
-        self.thread_manager.update_status (self.download_id, progress=percentage, status=_("Transcoding"), force_update=True)
+        self.thread_manager.update_status (self.download_id,
+            progress=percentage, status=_("Transcoding"), force_update=True)
         try:
             if not WINDOWS:
-                process = subprocess.Popen (command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, close_fds=True)
+                process = subprocess.Popen (command, stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    universal_newlines=True, close_fds=True
+                )
             else:
-                process = subprocess.Popen (command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, creationflags=win32process.CREATE_NO_WINDOW)
+                process = subprocess.Popen (command, stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    universal_newlines=True,
+                    creationflags=win32process.CREATE_NO_WINDOW
+                )
                 process.stdin.close ()
         except OSError:
             return False

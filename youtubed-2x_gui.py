@@ -123,11 +123,13 @@ if __name__ == '__main__':
             break
 
     if not gladefile:
-        logging.critical ("Glade file \"%s\" could not be found. Exiting.", filename)
+        logging.critical ("Glade file \"%s\" could not be found. Exiting.",
+            filename)
         sys.exit (1)
 
     thread_manager = VideoThreadManager (app_settings)
-    prop_win = PropertiesWindow (gladefile, app_settings, thread_manager)
+    prop_win = PropertiesWindow (gladefile, app_settings)
+    prop_win.connect ("settings_updated", thread_manager.alter_sem)
     main_ui = YouTubeDownloader (gladefile, app_settings, thread_manager,
         parser_manager, prop_win)
     VideoItem.setFFmpegLocation (app_settings.ffmpeg_location)

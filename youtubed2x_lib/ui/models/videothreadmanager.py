@@ -17,7 +17,15 @@ class VideoThreadManager (gobject.GObject):
         "unblock-ui": (gobject.SIGNAL_RUN_FIRST, None, ()),
     }
 
-    COLUMN_NAMES = {0: "url", 1: "title", 2: "progress", 3: "status", 4: "speed", 5: "size", 6: "eta"}
+    COLUMN_NAMES = {
+        0: "url",
+        1: "title",
+        2: "progress",
+        3: "status",
+        4: "speed",
+        5: "size",
+        6: "eta"
+    }
     UPDATE_INTERVAL = 1 # In seconds
     DOWNLOAD_UPDATE_INTERVAL = 1 # In seconds
     BYTES_PER_KB = FileDownloader.BYTES_PER_KB
@@ -29,13 +37,15 @@ class VideoThreadManager (gobject.GObject):
             self.__class__.__name__))
 
         if app_settings.process_limit < 0:
-            raise Exception ("Process limit is less than zero. Passed: %s"
-                % app_settings.process_limit
+            raise Exception (
+                "Process limit is less than zero. Passed: {0}".format (
+                    app_settings.process_limit)
             )
+    
         if app_settings.download_speed_limit < 0:
             raise Exception (
-                "Download speed limit is less than zero. Passed: %s"
-                % app_settings.download_speed_limit
+                "Download speed limit is less than zero. Passed: {0}".format (
+                app_settings.download_speed_limit)
             )
 
         self.tree_items = {}
@@ -47,7 +57,11 @@ class VideoThreadManager (gobject.GObject):
         self.app_settings = app_settings
         self.lock = Lock ()
 
-        self.tree_model = gtk.ListStore (gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_INT, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING)
+        self.tree_model = gtk.ListStore (
+            gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_INT,
+            gobject.TYPE_STRING, gobject.TYPE_STRING, gobject.TYPE_STRING,
+            gobject.TYPE_STRING
+        )
 #        self.download_semaphore = Semaphore (1)
         self.download_lock = Lock ()
         # Download limit in number of bytes (per second)
@@ -66,32 +80,42 @@ class VideoThreadManager (gobject.GObject):
         # Limit the number of transcoding process
         self.transcode_semaphore = Semaphore (1)
 
-    def add_try (self, thread):
+    def create_video_thread (self, video, status=None):
         self.lock.acquire ()
         # Check if video has already been added
-        possible_id = self.getThreadId (thread.video.parser.page_url)
+        possible_id = self.get_thread_id (video.parser.page_url)
         if possible_id:
             self.lock.release ()
             raise InQueueException ("URL has already been added to queue.")
 
-        gtk.gdk.threads_enter ()
+        thread = None
+        if status is None:
+            thread = VideoDownloadThread (self, self.app_settings, video)
+        else:
+            thread = VideoDownloadThread (
+                self, self.app_settings, video, status
+            )
+        
         # Using TreeIter hash as tree_item id
-        item_iter = self.tree_model.append ([thread.video.parser.page_url,
-                thread.video.parser.page_url, 0, "Getting Info", "", "", ""])
+        item_iter = self.tree_model.append ([video.parser.page_url,
+                video.parser.page_url, 0, "Getting Info", "", "", ""])
         self.tree_items[item_iter] = {
             "thread": thread,
             "last_update": time.time (),
             "speed_as_double": 0.0,
             "working": False
         }
+        thread.download_id = item_iter
 
-        #self.tree_model.append (['http://www.youtube.com/watch?v=KZ1aZjTrh3I',
+        #item_iter = self.tree_model.append (
+        #    ['http://www.youtube.com/watch?v=KZ1aZjTrh3I',
         #   'http://www.youtube.com/watch?v=KZ1aZjTrh3I', 0, 'Waiting',
         #   "100 KB", "50 MB"]) # Replace 2nd URL with parsed title once page
         #    is parsed
-        gtk.gdk.threads_leave ()
+        #thread.download_id = item_iter
 
         self._num_objects += 1
+        thread.start ()
         self.lock.release ()
         return item_iter
 
@@ -139,8 +163,9 @@ class VideoThreadManager (gobject.GObject):
             gtk.gdk.threads_leave ()
         self.sem_lock.release ()
 
-    def alter_sem (self, value):
+    def alter_sem (self, widget, settings):
         self.sem_lock.acquire ()
+        value = settings.process_limit
         if value >= 0:
             if value == 0:
                 self.semaphore = Semaphore (value)
@@ -156,6 +181,8 @@ class VideoThreadManager (gobject.GObject):
             self.lock.release ()
             return
 
+        # Only update at certain intervals due to Windows GTK
+        # runtime crashing when updating after each new message
         force_update = kwargs.get ("force_update", False)
         time_since_update = (
             time.time () - self.tree_items[item_iter]["last_update"]
@@ -173,7 +200,8 @@ class VideoThreadManager (gobject.GObject):
 
         # Update download speed total message in statusbar
         #time_since_speed_update = time.time () - self.speed_status_update
-        if self.tree_items[item_iter]["thread"].status == VideoDownloadThread.READY:# and time_since_speed_update > self.__class__.UPDATE_INTERVAL:
+        if (self.tree_items[item_iter]["thread"].status
+            == VideoDownloadThread.READY):# and time_since_speed_update > self.__class__.UPDATE_INTERVAL:
             self.emit ("progress_update", "Active: %i of %i" % (self._running_items, self._num_objects))
             #self.download_lock.acquire ()
 #            print "Try out"
@@ -199,28 +227,28 @@ class VideoThreadManager (gobject.GObject):
         gtk.gdk.threads_leave ()
         self.lock.release ()
 
-    def startDownload (self, item_iter):
+    def start_download (self, item_iter):
         if not item_iter in self.tree_items:
             return False
 
         thread = self.tree_items[item_iter]["thread"]
         thread.setReady (True)
 
-    def getVideoThread (self, item_iter):
+    def get_video_thread (self, item_iter):
         if not item_iter in self.tree_items:
             return None
 
         thread = self.tree_items[item_iter]["thread"]
         return thread
 
-    def getThreadId (self, url):
+    def get_thread_id (self, url):
         for element in self.tree_items:
             thread = self.tree_items[element]["thread"]
             if thread and thread.video.parser.page_url == url:
                 return element
         return None
 
-    def removeDownload (self, item_iter):
+    def remove_download (self, item_iter):
         if not item_iter in self.tree_items:
             return
 
@@ -233,7 +261,7 @@ class VideoThreadManager (gobject.GObject):
         self._num_objects -= 1
         self.lock.release ()
 
-    def finishDownload (self, item_iter):
+    def finish_download (self, item_iter):
         if not item_iter in self.tree_items:
             return
 
@@ -248,14 +276,16 @@ class VideoThreadManager (gobject.GObject):
 
     def swap_items (self, id_item1, id_item2):
         if id_item1 in self.tree_items and id_item2 in self.tree_items:
-            self.tree_model.swap (self.tree_items[id_item1]["iter"], self.tree_items[id_item2]["iter"])
+            self.tree_model.swap (self.tree_items[id_item1]["iter"],
+                self.tree_items[id_item2]["iter"])
 
     def is_queue_active (self):
         for element in self.tree_items.keys ():
             thread = self.tree_items[element]["thread"]
-            if thread and thread.isAlive ():
-                if thread.status == VideoDownloadThread.READY or thread.status == VideoDownloadThread.PARSING:
-                    return True
+            if thread and thread.isAlive () and (
+                thread.status == VideoDownloadThread.READY or
+                thread.status == VideoDownloadThread.PARSING):
+                return True
 
         return False
 
@@ -263,26 +293,28 @@ class VideoThreadManager (gobject.GObject):
         for element in self.tree_items.keys ():
             thread = self.tree_items[element]["thread"]
             if thread and not thread.isAlive ():
-                self.removeDownload (element)
+                self.remove_download (element)
 
     def restore_session (self):
         restore_session = SessionInfo ()
         items = restore_session.read ()
 
         for item in items:
-            youtube_video = item.video
             self.emit ("block-ui")
-            VideoDownloadThread (self, self.app_settings, youtube_video, item.status).start ()
+            self.create_video_thread (item.video, item.status)
 
     def save_session (self):
         items = []
 
         def add_items (model, path, iter, item_list):
             url = model.get_value (iter, 0)
-            thread_id = self.getThreadId (url)
-            thread = self.getVideoThread (thread_id)
-            if thread and (thread.status == thread.PAUSED or thread.status == thread.DONE or thread.status == thread.CANCELLED or thread.status == thread.WAITING):
-                 item_list.append (SessionItem (thread.video, thread.status))
+            thread_id = self.get_thread_id (url)
+            thread = self.get_video_thread (thread_id)
+            if thread and (
+                thread.status == thread.PAUSED or thread.status == thread.DONE
+                or thread.status == thread.CANCELLED
+                or thread.status == thread.WAITING):
+                item_list.append (SessionItem (thread.video, thread.status))
 
         self.tree_model.foreach (add_items, items)
 

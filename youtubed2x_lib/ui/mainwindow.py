@@ -6,12 +6,9 @@ import gtk
 import gobject
 import pango
 
-from youtubed2x_lib.ui.models.videodownloadthread import VideoDownloadThread
 from youtubed2x_lib.ui.videoitemmenu import VideoItemMenu
 from youtubed2x_lib.videoitem import VideoItem
-from youtubed2x_lib.other import APP_NAME
-from youtubed2x_lib.other import VERSION
-from youtubed2x_lib.other import WINDOWS
+from youtubed2x_lib.other import APP_NAME, VERSION, WINDOWS
 
 class YouTubeDownloader (object):
     GTK_RIGHT_CLICK_BUTTON = 3
@@ -37,15 +34,18 @@ class YouTubeDownloader (object):
         self.toolbutton3 = self.window.get_widget ('toolbutton3')
         self.toolbutton4 = self.window.get_widget ('toolbutton4')
         self.toolbutton5 = self.window.get_widget ('toolbutton5')
-        self.video_bitrate_combobox = self.window.get_widget ("video_bitrate_combobox")
-        self.audio_bitrate_combobox = self.window.get_widget ("audio_bitrate_combobox")
+        self.video_bitrate_combobox = self.window.get_widget (
+            "video_bitrate_combobox")
+        self.audio_bitrate_combobox = self.window.get_widget (
+            "audio_bitrate_combobox")
 
         bitrate_list = gtk.ListStore (gobject.TYPE_INT)
         self.video_bitrate_combobox.set_model (bitrate_list)
         for bitrate in self._video_bitrate_options:
             bitrate_list.append ([bitrate])
         if app_settings.vbitrate in self._video_bitrate_options:
-            self.video_bitrate_combobox.set_active (self._video_bitrate_options.index (app_settings.vbitrate))
+            self.video_bitrate_combobox.set_active (
+                self._video_bitrate_options.index (app_settings.vbitrate))
         else:
             self.video_bitrate_combobox.set_active (0)
             app_settings.vbitrate = self._video_bitrate_options[0]
@@ -61,8 +61,10 @@ class YouTubeDownloader (object):
         self.checkbutton1 = self.window.get_widget ('checkbutton1')
         self.checkbutton2 = self.window.get_widget ('checkbutton2')
         self.checkbutton3 = self.window.get_widget ('checkbutton3')
-        self.auto_download_check = self.window.get_widget ("auto_download_check")
-        self.resolution_combobox = self.window.get_widget ("resolution_combobox")
+        self.auto_download_check = self.window.get_widget (
+            "auto_download_check")
+        self.resolution_combobox = self.window.get_widget (
+            "resolution_combobox")
         self.resolution_combobox.set_active (app_settings.output_res)
 
         if app_settings.format in VideoItem.VIDEO_FORMATS:
@@ -181,12 +183,13 @@ class YouTubeDownloader (object):
             "on_treeview1_cursor_changed": self.select_item,
             "on_toolbutton3_clicked": self.clear_complete,
             "on_openfolderbutton_clicked": self.open_video_folder,
-            "on_filechooserbutton1_current_folder_changed": self.change_video_folder,
+            "on_filechooserbutton1_current_folder_changed":
+                self.change_video_folder,
             "on_pause_toolbutton_clicked": self.pause_download,
             "on_toolbutton2_clicked": self.remove,
-            "on_button1_clicked": self.add_queue,
+            "on_button1_clicked": self.add_video_from_url,
             "on_toolbutton1_clicked": self.start_process,
-            "on_entry1_activate": self.add_queue,
+            "on_entry1_activate": self.add_video_from_url,
             "on_audio_bitrate_changed": self.change_audio_bitrate,
         }
         self.window.signal_autoconnect (connect_dict)
@@ -197,9 +200,10 @@ class YouTubeDownloader (object):
             self.update_speed_statusbar)
         self.thread_manager.connect ("progress_update", self.update_statusbar)
 
-        # Populate sites_textview with hooks to controller methods when moving over text
-        # and clicking on links
-        self.sites_textview.connect ("motion-notify-event", self.sites_textview_motion_notify_event)
+        # Populate sites_textview with hooks to controller methods when
+        # moving over text and clicking on links
+        self.sites_textview.connect ("motion-notify-event",
+            self.sites_textview_motion_notify_event)
 
         parser_list = self.parser_manager.get_official_parsers ()
         name_list = []
@@ -225,7 +229,7 @@ class YouTubeDownloader (object):
             textbuffer.insert (textbuffer.get_end_iter (), "* ")
             textbuffer.insert_with_tags_by_name (textbuffer.get_end_iter (),
                 name, newtag.get_property ("name"))
-#            sites_str += "* %s    (%s/%s/%s)\n" % (name, parser_version.month, parser_version.day, parser_version.year)
+
             textbuffer.insert (textbuffer.get_end_iter (),
                 "   ({0}/{1}/{2})\n".format (parser_version.month,
                 parser_version.day, parser_version.year))
@@ -262,14 +266,16 @@ class YouTubeDownloader (object):
 
     def _cell_render_service (self, column, cell, model, iter):
         url = model.get_value (iter, 0)
-        thread_id = self.thread_manager.getThreadId (url)
-        thread = self.thread_manager.getVideoThread (thread_id)
+        thread_id = self.thread_manager.get_thread_id (url)
+        thread = self.thread_manager.get_video_thread (thread_id)
 
-        if not hasattr (thread.video.parser.__class__, "getImageData") and not callable (thread.video.parser.__class__.getImageData):
+        if not hasattr (thread.video.parser.__class__, "getImageData") and (
+            not callable (thread.video.parser.__class__.getImageData)):
             return
 
         image_data = thread.video.parser.getImageData ()
-        image = gtk.gdk.pixbuf_new_from_data (image_data, gtk.gdk.COLORSPACE_RGB, True, 8, 16, 16, 16*4)
+        image = gtk.gdk.pixbuf_new_from_data (image_data,
+            gtk.gdk.COLORSPACE_RGB, True, 8, 16, 16, 16*4)
         cell.set_property ('pixbuf', image)
         return
 
@@ -354,13 +360,13 @@ class YouTubeDownloader (object):
         tree = self.treeview1.get_selection ()
         model, selection = tree.get_selected ()
         url = model.get_value (selection, 0)
-        thread_id = self.thread_manager.getThreadId (url)
+        thread_id = self.thread_manager.get_thread_id (url)
 
         path = model.get_path (selection)
         index = path[0]
         previous = model.get_iter ((index-1),)
         dude_url = model.get_value (previous, 0)
-        prev_thread_id = self.thread_manager.getThreadId (dude_url)
+        prev_thread_id = self.thread_manager.get_thread_id (dude_url)
 
         self.thread_manager.swap_items (thread_id, prev_thread_id)
         tree.select_path (index-1)
@@ -371,13 +377,13 @@ class YouTubeDownloader (object):
         tree = self.treeview1.get_selection ()
         model, selection = tree.get_selected ()
         url = model.get_value (selection, 0)
-        thread_id = self.thread_manager.getThreadId (url)
+        thread_id = self.thread_manager.get_thread_id (url)
 
         path = model.get_path (selection)
         index = path[0]
         previous = model.get_iter ((index+1),)
         dude_url = model.get_value (previous, 0)
-        prev_thread_id = self.thread_manager.getThreadId (dude_url)
+        prev_thread_id = self.thread_manager.get_thread_id (dude_url)
 
         self.thread_manager.swap_items (thread_id, prev_thread_id)
         tree.select_path (index+1)
@@ -390,8 +396,8 @@ class YouTubeDownloader (object):
             return
 
         url = model.get_value (selection, 0)
-        thread_id = self.thread_manager.getThreadId (url)
-        thread = self.thread_manager.getVideoThread (thread_id)
+        thread_id = self.thread_manager.get_thread_id (url)
+        thread = self.thread_manager.get_video_thread (thread_id)
 
         if thread and thread.isAlive () and thread.status == thread.WAITING:
             self.toolbutton1.set_sensitive (True)
@@ -508,8 +514,8 @@ class YouTubeDownloader (object):
             return
 
         url = model.get_value (selection, 0)
-        thread_id = self.thread_manager.getThreadId (url)
-        thread = self.thread_manager.getVideoThread (thread_id)
+        thread_id = self.thread_manager.get_thread_id (url)
+        thread = self.thread_manager.get_video_thread (thread_id)
         if thread.status == thread.READY and thread._downloader:
             thread.pause ()
         elif thread.status == thread.PAUSED:
@@ -524,21 +530,21 @@ class YouTubeDownloader (object):
             return
 
         url = model.get_value (selection, 0)
-        thread_id = self.thread_manager.getThreadId (url)
-        thread = self.thread_manager.getVideoThread (thread_id)
+        thread_id = self.thread_manager.get_thread_id (url)
+        thread = self.thread_manager.get_video_thread (thread_id)
 
         if thread and thread.isAlive () and thread.status == thread.WAITING:
-            self.thread_manager.removeDownload (thread_id)
+            self.thread_manager.remove_download (thread_id)
         elif thread and thread.isAlive () and thread.status == thread.READY:
-            self.thread_manager.finishDownload (thread_id)
+            self.thread_manager.finish_download (thread_id)
         # Handle case of a cancelled download waiting to stop
         elif thread and thread.isAlive () and thread.status == thread.CANCELING:
             print "Already cancelled. Waiting. Don't do anything"
             return
         elif thread and thread.isAlive () and thread.status == thread.PAUSED:
-            self.thread_manager.finishDownload (thread_id)
+            self.thread_manager.finish_download (thread_id)
         elif thread:
-            self.thread_manager.removeDownload (thread_id)
+            self.thread_manager.remove_download (thread_id)
 
         self.block_partial_ui ()
         return True
@@ -549,11 +555,11 @@ class YouTubeDownloader (object):
         if not selection:
             return
 
-        if self._treeview_rightclick_event != None:
+        if self._treeview_rightclick_event:
             event = self._treeview_rightclick_event
             url = model.get_value (selection, 0)
-            thread_id = self.thread_manager.getThreadId (url)
-            thread = self.thread_manager.getVideoThread (thread_id)
+            thread_id = self.thread_manager.get_thread_id (url)
+            thread = self.thread_manager.get_video_thread (thread_id)
             popup = VideoItemMenu (self.gladefile, self.treeview1,
                 self.thread_manager)
 
@@ -594,30 +600,31 @@ class YouTubeDownloader (object):
         if event.button == self.GTK_RIGHT_CLICK_BUTTON:
             self._treeview_rightclick_event = event
 
-    def add_queue (self, widget):
+    def add_video_from_url (self, widget):
         newtext = self.entry1.get_text ()
         if not newtext:
             return
 
-        youtube_video = self.parser_manager.validateURL (newtext)
-        if not youtube_video:
+        video = self.parser_manager.validateURL (newtext)
+        if not video:
             self.update_statusbar (
                 message="An invalid url was passed. Try again.", interval=2500
             )
             self.entry1.set_text ('')
             return
         self.block_ui ()
-        VideoDownloadThread (self.thread_manager, self.app_settings, youtube_video).start ()
+        
+        self.thread_manager.create_video_thread (video)
 
     def start_process (self, widget):
         tree = self.treeview1.get_selection ()
         model, selection = tree.get_selected ()
 
         url = model.get_value (selection, 0)
-        thread_id = self.thread_manager.getThreadId (url)
+        thread_id = self.thread_manager.get_thread_id (url)
 
         if thread_id is not None:
-            self.thread_manager.startDownload (thread_id)
+            self.thread_manager.start_download (thread_id)
 
         self.select_item ()
         return True
