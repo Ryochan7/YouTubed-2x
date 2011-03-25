@@ -8,13 +8,12 @@ from youtubed2x_lib.sessioninfo import SessionInfo, SessionItem
 from youtubed2x_lib.ui.exceptions.inqueueexception import InQueueException
 from youtubed2x_lib.download import FileDownloader
 
+
 class VideoThreadManager (gobject.GObject):
     __gsignals__ = {
         "speed_progress_update": (gobject.SIGNAL_RUN_FIRST, None, (str,)),
         "progress_update": (gobject.SIGNAL_RUN_FIRST, None, (str,)),
-        "info-changed": (gobject.SIGNAL_RUN_FIRST, None, ()),
-        "block-ui": (gobject.SIGNAL_RUN_FIRST, None, ()),
-        "unblock-ui": (gobject.SIGNAL_RUN_FIRST, None, ()),
+        "need_ui_refresh": (gobject.SIGNAL_RUN_FIRST, None, ()),
     }
 
     COLUMN_NAMES = {
@@ -102,7 +101,7 @@ class VideoThreadManager (gobject.GObject):
         self.tree_items[item_iter] = {
             "thread": thread,
             "last_update": time.time (),
-            "speed_as_double": 0.0,
+            "last_updated_speed": 0.0,
             "working": False
         }
         thread.download_id = item_iter
@@ -150,17 +149,20 @@ class VideoThreadManager (gobject.GObject):
                 self.semaphore.release ()
             self._running_items -= 1
             self.lock.acquire ()
-            self.tree_items[item_iter]["speed_as_double"] = 0.0
             self.tree_items[item_iter]["working"] = False
             self.lock.release ()
 
         # Run after _running_items is altered to check if no more running
         # items exist
+        gtk.gdk.threads_enter ()
         if self._running_items == 0:
-            gtk.gdk.threads_enter ()
             self.emit ("speed_progress_update", "")
             self.emit ("progress_update", "")
-            gtk.gdk.threads_leave ()
+        else:
+            self.emit ("speed_progress_update", "")
+            self.emit ("progress_update", "Active: {0} of {1}".format (
+                self._running_items, self._num_objects))
+        gtk.gdk.threads_leave ()
         self.sem_lock.release ()
 
     def alter_sem (self, widget, settings):
@@ -187,43 +189,37 @@ class VideoThreadManager (gobject.GObject):
         time_since_update = (
             time.time () - self.tree_items[item_iter]["last_update"]
         )
+        #self._log.debug ("Time since update: {0}".format (time_since_update))
         update_time = time_since_update > self.UPDATE_INTERVAL
         # Return if it is not time to update item status
         if not update_time and not force_update:
             self.lock.release ()
             return
 
+        thread = self.tree_items[item_iter]["thread"]
         gtk.gdk.threads_enter ()
         for column, key in self.COLUMN_NAMES.items ():
             if key in kwargs:
                 self.tree_model.set (item_iter, column, kwargs[key])
 
         # Update download speed total message in statusbar
-        #time_since_speed_update = time.time () - self.speed_status_update
-        if (self.tree_items[item_iter]["thread"].status
-            == VideoDownloadThread.READY):# and time_since_speed_update > self.__class__.UPDATE_INTERVAL:
-            self.emit ("progress_update", "Active: %i of %i" % (self._running_items, self._num_objects))
-            #self.download_lock.acquire ()
-#            print "Try out"
-            # Recalculate time_since_speed_update in case acquiring the download_lock
-            # takes a while to do
-            #time_since_speed_update = time.time () - self.speed_status_update
-            #speed = 0.0
-            #for thread_id in self._worker_threads_ids:
-            #    temp_speed = self.tree_items[thread_id]["speed_as_double"]
-            #    speed += temp_speed
-            #print self._worker_threads_ids
-            #print "TEST TOTAL SPEED: %s" % speed
+        if (thread.status == VideoDownloadThread.READY):
+        # and time_since_speed_update > self.__class__.UPDATE_INTERVAL:
+            total_speed = thread.download_speed
+            # Loop through items and update total speed for all
+            # other threads
+            for iter_for_item, item in self.tree_items.iteritems ():
+                if item_iter is not iter_for_item:
+                    total_speed += item["last_updated_speed"]
 
-            #speed = self.download_speed_total / time_since_speed_update
-#            speed = self.download_speed_total / time_since_speed_update
-            #self.send ("speed_progress_update", "DL Speed: %s/s" % (FileDownloader.humanizeSize (speed),))
-            #self.send ("progress_update", "Active: %i of %i" % (self._running_items,self._num_objects))
-            #self.download_speed_total = 0
-            #self.speed_status_update = time.time ()
-            #self.download_lock.release ()
+            self.emit ("progress_update", "Active: {0} of {1}".format (
+                self._running_items, self._num_objects))
+            self.emit ("speed_progress_update", "DL Speed: {0}/s".format (
+                    FileDownloader.humanizeSize (total_speed)))
 
-        self.tree_items[item_iter]["last_update"] = time.time ()
+        item = self.tree_items[item_iter]
+        item["last_update"] = time.time ()
+        item["last_updated_speed"] = thread.download_speed
         gtk.gdk.threads_leave ()
         self.lock.release ()
 
@@ -232,7 +228,7 @@ class VideoThreadManager (gobject.GObject):
             return False
 
         thread = self.tree_items[item_iter]["thread"]
-        thread.setReady (True)
+        thread.set_ready (True)
 
     def get_video_thread (self, item_iter):
         if not item_iter in self.tree_items:
@@ -254,18 +250,21 @@ class VideoThreadManager (gobject.GObject):
 
         self.lock.acquire ()
         self.tree_model.remove (item_iter)
-        if self.tree_items[item_iter]["thread"].status != VideoDownloadThread.DONE:
+        if self.tree_items[item_iter]["thread"].status != (
+            VideoDownloadThread.DONE):
             self.tree_items[item_iter]["thread"].cancel ()
 
         del self.tree_items[item_iter]
         self._num_objects -= 1
+        self.emit ("need_ui_refresh")
         self.lock.release ()
 
     def finish_download (self, item_iter):
         if not item_iter in self.tree_items:
             return
 
-        if self.tree_items[item_iter]["thread"].status != VideoDownloadThread.DONE:
+        if self.tree_items[item_iter]["thread"].status != (
+            VideoDownloadThread.DONE):
             self.tree_items[item_iter]["thread"].cancel ()
 
     def is_empty (self):
@@ -276,8 +275,7 @@ class VideoThreadManager (gobject.GObject):
 
     def swap_items (self, id_item1, id_item2):
         if id_item1 in self.tree_items and id_item2 in self.tree_items:
-            self.tree_model.swap (self.tree_items[id_item1]["iter"],
-                self.tree_items[id_item2]["iter"])
+            self.tree_model.swap (id_item1, id_item2)
 
     def is_queue_active (self):
         for element in self.tree_items.keys ():
@@ -300,7 +298,6 @@ class VideoThreadManager (gobject.GObject):
         items = restore_session.read ()
 
         for item in items:
-            self.emit ("block-ui")
             self.create_video_thread (item.video, item.status)
 
     def save_session (self):

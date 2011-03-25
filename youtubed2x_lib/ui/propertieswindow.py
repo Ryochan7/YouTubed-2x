@@ -60,16 +60,16 @@ class PropertiesWindow (gobject.GObject):
 
     def toggle_proxy (self, widget):
         if widget.get_active ():
-            self.ui.proxy_server_text.set_sensitive (True)
-            self.ui.proxy_port_spin.set_sensitive (True)
-            self.ui.proxy_server_label.set_sensitive (True)
-            self.ui.proxy_port_label.set_sensitive (True)
+            self.proxy_server_text.set_sensitive (True)
+            self.proxy_port_spin.set_sensitive (True)
+            self.proxy_server_label.set_sensitive (True)
+            self.proxy_port_label.set_sensitive (True)
 
         else:
-            self.ui.proxy_server_text.set_sensitive (False)
-            self.ui.proxy_port_spin.set_sensitive (False)
-            self.ui.proxy_server_label.set_sensitive (False)
-            self.ui.proxy_port_label.set_sensitive (False)
+            self.proxy_server_text.set_sensitive (False)
+            self.proxy_port_spin.set_sensitive (False)
+            self.proxy_server_label.set_sensitive (False)
+            self.proxy_port_label.set_sensitive (False)
 
     def apply_changes (self, widget):
         temp = self.ffmpeg_chooser.get_filename ()

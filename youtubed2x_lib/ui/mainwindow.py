@@ -10,6 +10,7 @@ from youtubed2x_lib.ui.videoitemmenu import VideoItemMenu
 from youtubed2x_lib.videoitem import VideoItem
 from youtubed2x_lib.other import APP_NAME, VERSION, WINDOWS
 
+
 class YouTubeDownloader (object):
     GTK_RIGHT_CLICK_BUTTON = 3
 
@@ -194,8 +195,7 @@ class YouTubeDownloader (object):
         }
         self.window.signal_autoconnect (connect_dict)
 
-        self.thread_manager.connect ("unblock-ui", self.unlock_partial_ui)
-        self.thread_manager.connect ("block-ui", self.block_partial_ui)
+        self.thread_manager.connect ("need_ui_refresh", self.unlock_partial_ui)
         self.thread_manager.connect ("speed_progress_update",
             self.update_speed_statusbar)
         self.thread_manager.connect ("progress_update", self.update_statusbar)
@@ -218,7 +218,7 @@ class YouTubeDownloader (object):
             "Supported Sites\n-----------------------\n\n")
 
         for i, name in enumerate (name_list):
-            newtag = textbuffer.create_tag ("url-tag%i" % i)
+            newtag = textbuffer.create_tag ("url-tag{0}".format (i))
             newtag.set_property ("underline", pango.UNDERLINE_SINGLE)
             newtag.set_property ("foreground", "#2750FF")
             newtag.connect ("event",
@@ -461,11 +461,6 @@ class YouTubeDownloader (object):
 
         return True
 
-    def block_ui (self, widget=None):
-        self.block_partial_ui ()
-        self.entry1.set_sensitive (False)
-        self.button1.set_sensitive (False)
-
     def block_partial_ui (self, widget=None):
         self.toolbutton2.set_label ("Remove")
         self.toolbutton1.set_sensitive (False)
@@ -519,7 +514,7 @@ class YouTubeDownloader (object):
         if thread.status == thread.READY and thread._downloader:
             thread.pause ()
         elif thread.status == thread.PAUSED:
-            thread.setReady ()
+            thread.set_ready ()
 
         self.select_item ()
 
@@ -546,7 +541,7 @@ class YouTubeDownloader (object):
         elif thread:
             self.thread_manager.remove_download (thread_id)
 
-        self.block_partial_ui ()
+        #self.block_partial_ui ()
         return True
 
     def treeview_right2 (self, widget):
@@ -606,14 +601,13 @@ class YouTubeDownloader (object):
             return
 
         video = self.parser_manager.validateURL (newtext)
+        self.entry1.set_text ("")
         if not video:
             self.update_statusbar (
                 message="An invalid url was passed. Try again.", interval=2500
             )
-            self.entry1.set_text ('')
             return
-        self.block_ui ()
-        
+
         self.thread_manager.create_video_thread (video)
 
     def start_process (self, widget):

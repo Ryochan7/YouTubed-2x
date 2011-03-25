@@ -11,6 +11,7 @@ import logging
 import gettext
 import locale
 
+
 def add_translation ():
     lc, enc = locale.getdefaultlocale ()
 
@@ -69,6 +70,7 @@ def add_translation ():
     #gettext.install ("youtubed-2x")
     gtk.glade.textdomain ("youtubed-2x")
     logging.debug (_)
+
 
 if __name__ == '__main__':
     from youtubed2x_lib.other import WINDOWS
