@@ -541,7 +541,7 @@ class YouTubeDownloader (object):
         elif thread:
             self.thread_manager.remove_download (thread_id)
 
-        #self.block_partial_ui ()
+        self.block_partial_ui ()
         return True
 
     def treeview_right2 (self, widget):

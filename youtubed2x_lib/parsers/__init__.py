@@ -4,11 +4,15 @@ from youtubed2x_lib.other import getPage, PageNotFound
 import youtubed2x_lib.mimevault as mimevault
 
 class Parser_Helper (object):
-    """Abstract parser class. Updated 03/22/2011"""
+    """Abstract parser class. Updated 03/25/2011"""
     is_portal = False
     parser_type = "Generic"
     host_str = None
     mime_base = mimevault.MimeVault ()
+    video_url_str = ""
+    const_video_url_re = re.compile ("")
+    video_url_params_re = re.compile ("")
+    video_title_re = re.compile ("")
 
     def __init__ (self, video_id):
         self.video_id = video_id
@@ -16,9 +20,11 @@ class Parser_Helper (object):
             self.page_url = self.video_url_str % video_id
         else:
             self.page_url = self.video_url_str.format (video_id)
+
         # Normally assumed to be flv if parser does not raise an exception
         self.embed_file_type = "video/flv"
         self.page_dump = ""
+        self.real_url = ""
 
     def __str__ (self):
         return "<{0}: {1}>".format (self.__class__.parser_type, self.page_url)
@@ -74,9 +80,6 @@ class Parser_Helper (object):
     def parseVideoPage (self, page_dump=""):
         if not isinstance (page_dump, str):
             raise TypeError ("Argument must be a string representing the HTML code for a page")
-        
-#        title = self._parseTitle (page_dump)
-#        commands = self._parsePlayerCommands (page_dump)
 
         if not page_dump:
             page_dump, newurl = self.getVideoPage ()
@@ -94,8 +97,6 @@ class Parser_Helper (object):
         else:
             self.embed_file_type = headers["Content-Type"]
 
-        #print self.embed_file_type
-        #print self.getEmbedExtension ()
         return title, download_url, headers
 
     def _parseTitle (self):
@@ -128,3 +129,4 @@ class Parser_Helper (object):
     @staticmethod
     def getImageData ():
         raise NotImplementedError
+

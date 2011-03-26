@@ -65,7 +65,10 @@ class VideoItemMenu (object):
             if WINDOWS:
                 subprocess.Popen (["start", "", video_file], shell=True)
             else:
-                subprocess.Popen (["xdg-open", video_file])
+                process = subprocess.Popen (["xdg-open", video_file])
+                # Wait for xdg-open so it doesn't become a zombie process
+                # Will finish quickly
+                process.wait ()
 
     def playoutput_selection (self, widget):
         tree = self.treeview.get_selection ()
@@ -85,7 +88,10 @@ class VideoItemMenu (object):
             if WINDOWS:
                 subprocess.Popen (["start", "", video_file], shell=True)
             else:
-                subprocess.Popen (["xdg-open", video_file])
+                process = subprocess.Popen (["xdg-open", video_file])
+                # Wait for xdg-open so it doesn't become a zombie process
+                # Will finish quickly
+                process.wait ()
 
     def open_output_directory (self, widget):
         tree = self.treeview.get_selection ()
@@ -108,7 +114,10 @@ class VideoItemMenu (object):
             if WINDOWS:
                 subprocess.Popen (["start", "", directory], shell=True)
             else:
-                subprocess.Popen (["xdg-open", directory])
+                process = subprocess.Popen (["xdg-open", directory])
+                # Wait for xdg-open so it doesn't become a zombie process
+                # Will finish quickly
+                process.wait ()
 
     def get_children (self):
         return self.treeview_menu1.get_children ()

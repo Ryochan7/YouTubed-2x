@@ -9,6 +9,7 @@ from videoitem import VideoItem
 class AlreadyRegistered (Exception):
     pass
 
+
 class InvalidParser (Exception):
     pass
 

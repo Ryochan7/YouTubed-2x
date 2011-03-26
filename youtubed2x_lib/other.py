@@ -1,11 +1,29 @@
-import os, sys
-import urllib, urllib2
+import os
+import sys
+import urllib
+import urllib2
 import cookielib
 import socket
 import gzip
 import StringIO
 import re
+
+
 WINDOWS = (sys.platform == "win32")
+# Set user agent and cookie management
+VERSION = "2011.03.26"
+APP_NAME = "YouTubed-2x"
+USER_AGENT = "{0}/{1}".format (APP_NAME, VERSION)
+cj = cookielib.LWPCookieJar ()
+#opener = urllib2.build_opener (urllib2.HTTPCookieProcessor(cj),
+#    urllib2.HTTPHandler(debuglevel=1))
+opener = urllib2.build_opener (urllib2.HTTPCookieProcessor (cj),
+    urllib2.ProxyHandler ())
+urllib2.install_opener (opener)
+#urllib2.install_opener (urllib2.build_opener (urllib2.ProxyHandler ()))
+#print socket.getdefaulttimeout()
+socket.setdefaulttimeout (15)
+#socket.setdefaulttimeout (0)
 
 
 class PageNotFound (Exception): pass
@@ -25,12 +43,14 @@ class UserDirectoryIndex (object):
             data_dir = os.environ["APPDATA"]
             config_dir = os.path.join (data_dir, "youtubed-2x")
         else:
-            raise Exception ("LOCALAPPDATA nor APPDATA specified. Should not be here")
+            raise Exception (
+                "LOCALAPPDATA nor APPDATA specified. Should not be here")
     else:
         config_dir = os.path.join (data_dir, ".youtubed-2x")
 
 
-def getPage (url, data=None, read_page=True, get_headers=False, additional_headers={}):
+def getPage (url, data=None, read_page=True, get_headers=False,
+    additional_headers=None):
     """Generic function that makes requests for pages"""
     if data and not isinstance (data, dict):
         raise TypeError ("Data argument must be a dictionary")
@@ -38,6 +58,8 @@ def getPage (url, data=None, read_page=True, get_headers=False, additional_heade
         data = urllib.urlencode (data)
     if additional_headers and not isinstance (additional_headers, dict):
         raise TypeError ("Additional headers argument must be a dictionary")
+    elif additional_headers is None:
+        additional_headers = {}
 
     req = urllib2.Request (url, data)
     req.add_header ("User-Agent", USER_AGENT)
@@ -49,12 +71,13 @@ def getPage (url, data=None, read_page=True, get_headers=False, additional_heade
     try:
         handle = urllib2.urlopen (req)
     except:
-        raise PageNotFound ("Page \"%s\" could not be found" % url)
+        raise PageNotFound ("Page \"{0}\" could not be found".format (url))
 
     if read_page:
         if handle.headers.get ("Content-Encoding") == "gzip":
             compressed_data = handle.read ()
-            page = gzip.GzipFile (fileobj=StringIO.StringIO (compressed_data)).read ()
+            page = gzip.GzipFile (
+                fileobj=StringIO.StringIO (compressed_data)).read ()
         else:
             page = handle.read ()
     else:
@@ -67,24 +90,10 @@ def getPage (url, data=None, read_page=True, get_headers=False, additional_heade
 
     return page, newurl
 
-# Set user agent and cookie management
-VERSION = "2010.01.22"
-APP_NAME = "YouTubed-2x"
-#USER_AGENT = {'User-agent' : '%s/%s' % (APP_NAME, VERSION)}
-USER_AGENT = "%s/%s" % (APP_NAME, VERSION)
-cj = cookielib.LWPCookieJar ()
-#opener = urllib2.build_opener (urllib2.HTTPCookieProcessor(cj), urllib2.HTTPHandler(debuglevel=1))
-opener = urllib2.build_opener (urllib2.HTTPCookieProcessor (cj), urllib2.ProxyHandler ())
-urllib2.install_opener (opener)
-#urllib2.install_opener (urllib2.build_opener (urllib2.ProxyHandler ()))
-
-#print socket.getdefaulttimeout()
-socket.setdefaulttimeout (15)
-#socket.setdefaulttimeout (0)
-
 
 def remove_proxy ():
-    opener = urllib2.build_opener (urllib2.HTTPCookieProcessor (cj), urllib2.ProxyHandler ())
+    opener = urllib2.build_opener (urllib2.HTTPCookieProcessor (cj),
+        urllib2.ProxyHandler ())
     urllib2.install_opener (opener)
 
 
@@ -93,11 +102,12 @@ def set_proxy (server, port):
     temp_ip_re = re.compile (r"^\d{0,3}\.\d{0,3}\.\d{0,3}\.\d{0,3}$")
 
     if temp_ip_re.match (server):
-        proxy_handler = urllib2.ProxyHandler ({"http": "http://%s:%s" % (server, port)})
+        proxy_handler = urllib2.ProxyHandler (
+            {"http": "http://{0}:{1}".format (server, port)})
 
-        opener = urllib2.build_opener (urllib2.HTTPCookieProcessor (cj), proxy_handler)
+        opener = urllib2.build_opener (urllib2.HTTPCookieProcessor (cj),
+            proxy_handler)
         urllib2.install_opener (opener)
     else:
         raise Exception ("Invalid server address passed")
-
 
