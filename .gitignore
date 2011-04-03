@@ -1,5 +1,6 @@
 *.pyc
 MANIFEST
+*.mo
 .ropeproject/
 build/
 dist/

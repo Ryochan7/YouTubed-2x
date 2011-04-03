@@ -1,0 +1,12 @@
+include youtubed2x_lib/tests/*.py
+include CREDITS
+include Extra.txt
+include GPL.txt
+include tests.py
+include bin/*
+include data/*
+include gtk-win/*
+include i18n/*.po
+include i18n/POTFILES.inc
+include utils/*.py
+
