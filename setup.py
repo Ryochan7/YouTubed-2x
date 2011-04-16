@@ -39,7 +39,8 @@ if len (trans_files) > 0:
     arguments["data_files"].extend (trans_files)
 
 
-if WINDOWS:
+if WINDOWS and "py2exe" in sys.argv:
+    import py2exe
     import youtubed2x_lib.parsers
 
     includes_list = ["atk", "cairo", "pango", "pangocairo"]
@@ -137,3 +138,4 @@ if WINDOWS:
 
 # Launch setup
 setup (**arguments)
+

@@ -3,16 +3,23 @@ import sys
 import ConfigParser
 from videoitem import VideoItem
 from other import WINDOWS, UserDirectoryIndex
+if WINDOWS:
+    import ctypes
 
 class Settings (object):
+    # CSIDL_MYVIDEO environment variable corresponds to user's My Videos 
+    # Directory
+    CSIDL_MYVIDEO = 14
+    # Alternative environment variable for all users. Use if CSIDL_MYVIDEO
+    # is not defined
+    CSIDL_COMMON_VIDEO = 55
+    BUFFER_MAXLENGTH = 300
 
     class InvalidConfig (Exception):
         pass
 
-
     def __init__ (self):
         self.setDefaults ()
-
 
     def readConfigFile (self):
         if not os.path.exists (self.config_file_location):
@@ -63,7 +70,6 @@ class Settings (object):
 
         return
 
-
     def writeConfigFile (self):
         if not os.path.isdir (self.config_dir):
             os.mkdir (self.config_dir)
@@ -104,7 +110,6 @@ class Settings (object):
         file.close ()
         return
 
-
     def setDefaults (self):
         self.vbitrate = 384
         self.abitrate = 128
@@ -113,11 +118,13 @@ class Settings (object):
         self.overwrite = False
         self.keep_flv_files = True
         if WINDOWS:
-            import ctypes
             dll = ctypes.windll.shell32
-            buf = ctypes.create_string_buffer (300)
-            # 0x000E corresponds to CSIDL_MYVIDEO environment variable
-            dll.SHGetSpecialFolderPathA (None, buf, 0x000E, False)
+            buf = ctypes.create_unicode_buffer (self.BUFFER_MAXLENGTH)
+            dll.SHGetSpecialFolderPathW (None, buf, self.CSIDL_MYVIDEO, False)
+            # CSIDL_MYVIDEO is not defined. Try CSIDL_COMMON_VIDEO instead
+            if not buf.value:
+                dll.SHGetSpecialFolderPathW (None, buf, self.CSIDL_COMMON_VIDEO, False)
+
             self.output_dir = buf.value
         else:
             self.output_dir = os.path.join (os.path.expanduser ("~"), "Videos")
@@ -148,20 +155,17 @@ class Settings (object):
         self.auto_download = True
         self.download_speed_limit = 0 # In KBps. 0 means no limit
 
-        #print self.ffmpeg_location
-
-
     def _get_output_dir (self):
         return self._output_dir
 
     def _set_output_dir (self, value):
-        if isinstance (value, str):
+        if isinstance (value, (str, unicode)):
             self._output_dir = value
         else:
-            raise TypeError ("output_dir value must be passed as a string")
+            raise TypeError ("""output_dir value must be passed as an"""
+                """ascii or unicode string""")
 
     output_dir = property (_get_output_dir, _set_output_dir)
-
 
     def _get_vbitrate (self):
         return self._vbitrate
@@ -178,7 +182,6 @@ class Settings (object):
 
     vbitrate = property (_get_vbitrate, _set_vbitrate)
 
-
     def _get_abitrate (self):
         return self._abitrate
 
@@ -194,7 +197,6 @@ class Settings (object):
             raise TypeError ("abitrate must be an integer")
 
     abitrate = property (_get_abitrate, _set_abitrate)
-
 
     def _get_format (self):
         return self._format
@@ -219,7 +221,6 @@ class Settings (object):
 
     format = property (_get_format, _set_format)
 
-
     def _get_transcode (self):
         return self._transcode
 
@@ -230,7 +231,6 @@ class Settings (object):
             raise TypeError ("transcode value must be a boolean")
 
     transcode = property (_get_transcode, _set_transcode)
-
 
     def _get_overwrite (self):
         return self._overwrite
@@ -243,7 +243,6 @@ class Settings (object):
 
     overwrite = property (_get_overwrite, _set_overwrite)
 
-
     def _get_keep_flv_files (self):
         return self._keep_flv_files
 
@@ -254,7 +253,6 @@ class Settings (object):
             raise TypeError ("keep_flv_files value must be a boolean")
 
     keep_flv_files = property (_get_keep_flv_files, _set_keep_flv_files)
-
 
     def _get_ffmpeg_location (self):
         return self._ffmpeg_location
@@ -267,7 +265,6 @@ class Settings (object):
 
     ffmpeg_location = property (_get_ffmpeg_location, _set_ffmpeg_location)
 
-
     def _get_sitedirs (self):
         return self._sitedirs
 
@@ -278,7 +275,6 @@ class Settings (object):
             raise TypeError ("sitedirs value must be a boolean")
 
     sitedirs = property (_get_sitedirs, _set_sitedirs)
-
 
     def _get_config_dir (self):
         return self._config_dir
@@ -291,7 +287,6 @@ class Settings (object):
 
     config_dir = property (_get_config_dir, _set_config_dir)
 
-
     def _get_config_file_location (self):
         return self._config_file_location
 
@@ -302,7 +297,6 @@ class Settings (object):
             raise TypeError ("config_file_location location must be given as a string")
 
     config_file_location = property (_get_config_file_location, _set_config_file_location)
-
 
     def _get_output_res (self):
         return self._output_res
@@ -315,7 +309,6 @@ class Settings (object):
             raise ValueError ("output_res is not a valid resolution")
         else:
             raise TypeError ("output_res must be an integer")
-
 
     output_res = property (_get_output_res, _set_output_res)
 
@@ -331,7 +324,6 @@ class Settings (object):
 
     use_proxy = property (_get_use_proxy, _set_use_proxy)
 
-
     def _get_proxy_server (self):
         return self._proxy_server
 
@@ -343,7 +335,6 @@ class Settings (object):
 
     proxy_server = property (_get_proxy_server, _set_proxy_server)
 
-
     def _get_proxy_port (self):
         return self._proxy_port
 
@@ -354,7 +345,6 @@ class Settings (object):
             raise TypeError ("proxy_port must be an integer")
 
     proxy_port = property (_get_proxy_port, _set_proxy_port)
-
 
     def _get_process_limit (self):
         return self._process_limit
@@ -369,7 +359,6 @@ class Settings (object):
             raise TypeError ("process_limit must be an integer")
 
     process_limit = property (_get_process_limit, _set_process_limit)
-
 
     def _get_auto_download (self):
         return self._auto_download
@@ -394,5 +383,4 @@ class Settings (object):
             raise TypeError ("download_speed_limit value must be an int or long")
 
     download_speed_limit = property (_get_download_speed_limit, _set_download_speed_limit)
-
 

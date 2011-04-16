@@ -191,7 +191,8 @@ in a FAT32 filesystem. Incomplete"""
 #        ignore_mimetypes = ("audio/mpeg", "audio/mp3", "audio/ogg",)
 #        mimetype = self.parser.getEmbedType ()
 #        print "OLD METHOD: %s" % self.parser.getEmbedType ()
-        mimetype = mimetypes.guess_type (self.flv_file)[0]
+        guessed_type = mimetypes.guess_type (self.flv_file)[0]
+        mimetype = guessed_type if guessed_type else self.parser.getEmbedType ()
 #        print "NEW METHOD: %s" % mimetype
         if not mimetype:
             return []

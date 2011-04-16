@@ -75,7 +75,7 @@ def add_translation ():
 if __name__ == '__main__':
     from youtubed2x_lib.other import WINDOWS
     # Set up logging
-    logging_level = logging.NOTSET
+    logging_level = logging.DEBUG
     if WINDOWS:
         logging.basicConfig (filename="log.txt", level=logging_level)
     else:
