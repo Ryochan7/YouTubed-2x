@@ -20,9 +20,9 @@ class YouTube_Parser (Parser_Helper):
         r"""<link rel="alternate" type="application/json\+oembed" """
         r"""href="(?:.*)" title="([^<]*)"(?:[ ]+)?/>"""
     )
-    video_url_params_re = re.compile (r""""fmt_stream_map": "35\|([^|]+)""")
+    video_url_params_re = re.compile (r""""fmt_stream_map": "(?:.*,)?35\|([^|]+)""")
     video_url_params_re_second = re.compile (
-        r""""fmt_stream_map": "34\|([^|]+)""")
+            r""""fmt_stream_map": "(?:.*,)?34\|([^|]+)""")
 
     login_required_re = re.compile (
         r"""^http://www.youtube.com/verify_age\?(?:&)?next_url=/watch""")
